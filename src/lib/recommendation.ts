@@ -1,5 +1,6 @@
 import {
   productCatalog,
+  categoryEnByGearCategory,
   type Activity,
   type BudgetWeight,
   type GearCategory,
@@ -29,7 +30,9 @@ export type RiskIconName =
 
 export type GearTemplate = {
   name: string;
+  nameEn?: string;
   reason: string;
+  reasonEn?: string;
   priority: GearPriority;
 };
 
@@ -46,7 +49,24 @@ type GearQuantityRule = {
 export type RiskBlock = {
   icon: RiskIconName;
   title: string;
+  titleEn?: string;
   text: string;
+  descriptionEn?: string;
+};
+
+export type OutdoorInsightType = "gear" | "weather" | "budget" | "safety";
+
+export type OutdoorInsight = {
+  type: OutdoorInsightType;
+  title: string;
+  text: string;
+};
+
+export type OutdoorInsightReport = {
+  profile: string;
+  strategy: string;
+  summary: string;
+  insights: OutdoorInsight[];
 };
 
 export type BudgetLevel = "low" | "mid" | "high" | "ultra";
@@ -346,6 +366,23 @@ function mergeGear(items: GearTemplate[]) {
   return Array.from(map.values());
 }
 
+const gearReasonEnByPriority: Record<GearPriority, string> = {
+  safety: "Adds practical safety margin for navigation, delays, or small incidents.",
+  weather: "Helps manage exposure when weather shifts during the trip.",
+  core: "Covers a high-use item that directly affects comfort and movement.",
+  comfort: "Improves rest, organization, or comfort once the essentials are covered.",
+};
+
+function getGearEnglish(item: GearTemplate) {
+  const rule = gearQuantityRulesByName[item.name];
+  const categoryName = rule ? categoryEnByGearCategory[rule.gearCategory] : "essential outdoor gear";
+
+  return {
+    nameEn: item.nameEn ?? categoryName.replace(/^\w/, (char) => char.toUpperCase()),
+    reasonEn: item.reasonEn ?? gearReasonEnByPriority[item.priority],
+  };
+}
+
 export function buildGearList(
   activity: Activity,
   tripDays: TripDays,
@@ -356,6 +393,7 @@ export function buildGearList(
   return mergeGear([...weatherGear[weather], ...activityGear[activity], ...durationGear[tripDays]])
     .map((item) => ({
       ...item,
+      ...getGearEnglish(item),
       quantity: item.name.includes("鱼竿")
         ? `${Math.max(1, peopleCount)}根`
         : calculateGearQuantity(item, peopleCount, tripDays, weather, budget),
@@ -740,6 +778,67 @@ function getProductIcon(gearCategory: GearCategory) {
   return icons[gearCategory] ?? "装";
 }
 
+const riskEnglishByIcon: Record<RiskIconName, { title: string; text: string }> = {
+  activity: {
+    title: "Activity fit",
+    text: "Match the plan to the real terrain, pace, and skill level rather than the ideal version of the trip.",
+  },
+  calendar: {
+    title: "Timing margin",
+    text: "Keep a clear return window and avoid pushing the route when daylight or energy starts to run low.",
+  },
+  weather: {
+    title: "Weather exposure",
+    text: "Watch how sun, rain, wind, or heat changes the route over time, not just at the start.",
+  },
+  people: {
+    title: "Group pacing",
+    text: "Agree on pace, meetup points, and roles so the group does not spread out silently.",
+  },
+  budget: {
+    title: "Budget focus",
+    text: "Spend first on safety, weather protection, and high-use items before comfort upgrades.",
+  },
+  pack: {
+    title: "Supply margin",
+    text: "Carry enough water, food, and backup essentials for delays or a slower return.",
+  },
+  spark: {
+    title: "Comfort upgrade",
+    text: "Upgrade comfort only after the essentials for safety, warmth, and movement are covered.",
+  },
+  alert: {
+    title: "Risk control",
+    text: "Set a simple condition for turning back before fatigue or weather makes the decision harder.",
+  },
+  check: {
+    title: "Pre-trip check",
+    text: "Check key gear before leaving so small omissions do not become route problems.",
+  },
+  shield: {
+    title: "Protection first",
+    text: "Prioritize protective gear and conservative decisions when conditions become less predictable.",
+  },
+  route: {
+    title: "Route planning",
+    text: "Confirm route difficulty, exit points, and backup options before committing to the day.",
+  },
+  clock: {
+    title: "Time control",
+    text: "The safest plan has a latest turnaround time, not just a destination.",
+  },
+};
+
+function enrichRiskBlock(risk: RiskBlock): RiskBlock {
+  const fallback = riskEnglishByIcon[risk.icon];
+
+  return {
+    ...risk,
+    titleEn: risk.titleEn ?? fallback.title,
+    descriptionEn: risk.descriptionEn ?? fallback.text,
+  };
+}
+
 export function getRiskBlocks(activity: Activity, weather: Weather, tripDays: TripDays): RiskBlock[] {
   const activityRisk: Record<Activity, RiskBlock> = {
     登山: { icon: "route", title: "路线与撤退点", text: "登山前确认海拔、爬升和撤退点，不要只依赖单一导航。" },
@@ -765,5 +864,299 @@ export function getRiskBlocks(activity: Activity, weather: Weather, tripDays: Tr
     "4天以上": { icon: "route", title: "长线规划", text: "长线行程要拆分补给点、撤离点和每日里程。" },
   };
 
-  return [activityRisk[activity], weatherRisk[weather], durationRisk[tripDays]];
+  return [activityRisk[activity], weatherRisk[weather], durationRisk[tripDays]].map(enrichRiskBlock);
+}
+
+function getTripLengthTone(tripDays: TripDays) {
+  if (tripDays === "1天") return "短途";
+  if (tripDays === "2-3天") return "多日";
+  return "长线";
+}
+
+function getBudgetTone(budget: number, peopleCount: number) {
+  const perPersonBudget = Math.max(0, budget) / Math.max(1, peopleCount);
+
+  if (perPersonBudget < 900) return "tight";
+  if (perPersonBudget < 2500) return "balanced";
+  return "comfortable";
+}
+
+function getActivityGearAdvice(activity: Activity, weather: Weather, tripDays: TripDays, peopleCount: number) {
+  const lengthTone = getTripLengthTone(tripDays);
+
+  if (activity === "露营" && weather === "雨天") {
+    return "雨天露营先把防水和营地排水做好，帐篷、地布和干袋比装饰性装备更值得优先投入。";
+  }
+
+  if (activity === "露营" && peopleCount >= 3) {
+    return "多人露营建议把炉具、照明和桌椅按共享装备规划，减少重复购买，也能让营地动线更顺。";
+  }
+
+  if (activity === "徒步" && weather === "晴天") {
+    return "晴天徒步更适合轻量透气组合，鞋袜、背负和补水效率会直接影响后半程体感。";
+  }
+
+  if (activity === "钓鱼" && weather === "晴天") {
+    return "晴天短途钓鱼更适合轻量装备，减少长时间持握和等待带来的疲劳。";
+  }
+
+  if (activity === "滑雪") {
+    return "滑雪装备优先保证头盔、雪镜和雪靴贴合度，舒适度不足会很快转化为控制风险。";
+  }
+
+  if (activity === "登山") {
+    return `${lengthTone}登山不要只看单件性能，鞋底抓地、背包稳定和照明冗余要一起考虑。`;
+  }
+
+  if (activity === "自驾游") {
+    return "自驾出行的装备重点在供电、冷藏和车辆应急，舒适装备可以在核心保障之后再补。";
+  }
+
+  if (activity === "骑行") {
+    return "骑行装备建议优先处理头盔、手套、车灯和补胎工具，它们比速度装备更能提升实际体验。";
+  }
+
+  if (activity === "海边旅行") {
+    return "海边出行要把防晒、防水收纳和速干装备放在前面，避免阳光和潮气影响整天节奏。";
+  }
+
+  return `${lengthTone}${activity}建议先锁定鞋服、收纳和照明等高频装备，再按预算补足舒适项。`;
+}
+
+function getWeatherAdvice(activity: Activity, weather: Weather, tripDays: TripDays) {
+  if (weather === "雨天") {
+    return activity === "露营"
+      ? "雨天营地尽量避开低洼和河道边，进帐前设置湿区，能明显降低夜间受潮概率。"
+      : "雨天路面和装备都会变得更难管理，外层防水、备用干衣和电子设备收纳要提前分层。";
+  }
+
+  if (weather === "寒冷") {
+    return tripDays === "4天以上"
+      ? "长线寒冷环境要按分层穿着准备，保暖层和干燥备用衣物比单纯加厚更可靠。"
+      : "寒冷天气别等到发冷再加衣，停留、等待和返程阶段才是体温下降最快的时候。";
+  }
+
+  if (weather === "炎热") {
+    return "高温下装备越轻越好，但补水、电解质和遮阳不能省，行程最好避开正午强晒。";
+  }
+
+  return activity === "徒步"
+    ? "晴天徒步也要保留防晒和风层，山地日照、风口和林荫温差会让体感快速变化。"
+    : "晴天适合提高行动效率，但防晒、补水和眼部保护仍然是基础安全配置。";
+}
+
+function getBudgetAdvice(activity: Activity, budget: number, peopleCount: number, tripDays: TripDays) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (budgetTone === "tight") {
+    return `当前预算更适合抓核心装备，${activity}场景下先保证安全、防护和必需消耗品，舒适升级可以后置。`;
+  }
+
+  if (peopleCount >= 3) {
+    return "多人预算建议区分个人装备和共享装备，共享类优先买稳定耐用款，个人类按使用频率分档。";
+  }
+
+  if (tripDays === "4天以上") {
+    return "长途出行预算不要全部花在大件上，预留补给、备用电力和应急替换会更稳。";
+  }
+
+  if (budgetTone === "comfortable") {
+    return "预算余量充足时，优先升级鞋、外层防护和睡眠系统，这些装备对安全和恢复最有感。";
+  }
+
+  return "这个预算适合做均衡配置，核心装备选稳定款，低频配件不必追高规格。";
+}
+
+function getSafetyAdvice(activity: Activity, weather: Weather, tripDays: TripDays, peopleCount: number) {
+  if (tripDays === "4天以上") {
+    return "长线行程建议提前拆分撤离点和补给点，并把每日最晚折返点写清楚。";
+  }
+
+  if (peopleCount >= 4) {
+    return "多人同行最容易忽略节奏差异，建议指定集合点和队尾观察者，避免队伍被拉散。";
+  }
+
+  if (weather === "雨天") {
+    return "雨天不要低估失温和滑坠风险，缩短强度、保留干燥层，比硬撑行程更专业。";
+  }
+
+  if (activity === "钓鱼") {
+    return "水边活动尽量避免单独行动，湿滑岸线、涨水和雷雨变化都需要提前设撤离条件。";
+  }
+
+  if (activity === "骑行") {
+    return "骑行前检查刹车、胎压和车灯，夜间或隧道场景下可见度比速度更重要。";
+  }
+
+  return "出发前把路线、天气窗口和返程时间同步给同行者，装备清单之外也要留出撤退预案。";
+}
+
+function getTripProfile(activity: Activity, weather: Weather, tripDays: TripDays, peopleCount: number, budget: number) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (weather === "寒冷") return "极寒谨慎型";
+  if (tripDays === "4天以上") return "长途耐力型";
+  if (peopleCount >= 3) return "多人共享型";
+  if (budgetTone === "comfortable") return "高预算舒适型";
+  if (budgetTone === "tight") return "基础安全型";
+  if (tripDays === "1天" && (activity === "徒步" || activity === "钓鱼" || activity === "骑行")) return "轻量短途型";
+  if (weather === "炎热") return "高温轻装型";
+
+  return "均衡探索型";
+}
+
+function getGearStrategy(activity: Activity, weather: Weather, tripDays: TripDays, peopleCount: number, budget: number) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (weather === "寒冷") return "优先保暖与返程冗余";
+  if (tripDays === "4天以上") return "优先轻量化与耐力分配";
+  if (peopleCount >= 3) return "优先共享装备与协作效率";
+  if (budgetTone === "tight") return "优先基础安全与高频装备";
+  if (budgetTone === "comfortable") return "优先舒适性、轻量化和高性能装备";
+  if (activity === "露营" && weather === "雨天") return "优先防水、排水和营地稳定";
+
+  return "优先安全冗余与体验均衡";
+}
+
+function getProfileSummary(activity: Activity, weather: Weather, tripDays: TripDays, peopleCount: number, budget: number) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (weather === "寒冷") {
+    return "这次真正需要管理的不是出发时的冷，而是返程、停留和体力下降后的失温风险。";
+  }
+
+  if (tripDays === "4天以上") {
+    return "长途行程的关键在持续稳定，装备越重，后几天的决策和行动质量越容易被拖垮。";
+  }
+
+  if (peopleCount >= 3) {
+    return "多人出行不只是把装备数量乘以人数，更重要的是分清公共装备、个人装备和协作角色。";
+  }
+
+  if (budgetTone === "tight") {
+    return `当前预算下，${activity}更适合少买但买对，把基础安全和可重复使用装备放在前面。`;
+  }
+
+  if (budgetTone === "comfortable") {
+    return "预算余量可以转化成更好的体力保存：轻量、贴合、稳定和睡眠恢复都值得升级。";
+  }
+
+  if (weather === "炎热") {
+    return "高温环境里，轻装只是第一步，补水节奏和遮阳管理才决定后半程状态。";
+  }
+
+  return "这次配置适合走均衡路线，先稳住安全和核心体验，再用预算补足舒适细节。";
+}
+
+function personalizeGearAdvice(base: string, weather: Weather, tripDays: TripDays, peopleCount: number, budget: number) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (budgetTone === "tight") {
+    return `${base} 预算偏紧时，不建议把钱分散到低频配件，先让鞋服、防护和应急物品足够可靠。`;
+  }
+
+  if (peopleCount >= 3) {
+    return `${base} 多人同行可以把炉具、照明、电源和急救包集中规划，减少重复重量和重复花费。`;
+  }
+
+  if (tripDays === "4天以上") {
+    return `${base} 长途场景下每一件装备都要经得起“连续使用”，轻量和耐用比单次体验更重要。`;
+  }
+
+  if (weather === "寒冷") {
+    return `${base} 寒冷环境下别只堆厚衣服，贴身排汗、保暖层和防风外层要能连续配合。`;
+  }
+
+  return base;
+}
+
+function personalizeWeatherAdvice(base: string, weather: Weather, tripDays: TripDays) {
+  if (weather === "寒冷") {
+    return "寒冷环境下真正危险的阶段，往往发生在返程和停留时；建议把干燥保暖层留到后半程使用。";
+  }
+
+  if (weather === "雨天") {
+    return "雨天不要只看降雨量，地面湿滑、装备吸水和夜间降温会叠加影响行程，防水分层要提前做好。";
+  }
+
+  if (tripDays === "4天以上") {
+    return `${base} 长线行程还要关注天气窗口变化，最好为后两天保留路线调整空间。`;
+  }
+
+  return base;
+}
+
+function personalizeBudgetAdvice(base: string, activity: Activity, budget: number, peopleCount: number) {
+  const budgetTone = getBudgetTone(budget, peopleCount);
+
+  if (budgetTone === "tight") {
+    return `低预算下的${activity}更需要克制：共享装备优先，个人装备只升级直接影响安全和体力的部分。`;
+  }
+
+  if (budgetTone === "comfortable") {
+    return "高预算不要只买更贵的大件，真正提升体验的是轻量化、贴合度、睡眠恢复和恶劣天气余量。";
+  }
+
+  if (peopleCount >= 3) {
+    return "多人预算最怕平均用力，公共装备买稳定款，个人装备按身高体力和使用频率拉开档位。";
+  }
+
+  return base;
+}
+
+function personalizeSafetyAdvice(base: string, weather: Weather, tripDays: TripDays, peopleCount: number) {
+  if (weather === "寒冷") {
+    return "寒冷天气的安全边界要往前放，出现手脚发麻、行动变慢或停留变久时，就该主动缩短行程。";
+  }
+
+  if (tripDays === "4天以上") {
+    return "长途安全不是靠多带装备解决的，关键是每天都有撤退点、补给点和明确的最晚折返点。";
+  }
+
+  if (peopleCount >= 4) {
+    return "多人队伍要提前约定队首、队尾和集合点，真正的风险常来自队伍被无声拉散。";
+  }
+
+  return base;
+}
+
+export function getOutdoorInsights(
+  activity: Activity,
+  weather: Weather,
+  tripDays: TripDays,
+  peopleCount: number,
+  budget: number,
+): OutdoorInsightReport {
+  const gearAdvice = getActivityGearAdvice(activity, weather, tripDays, peopleCount);
+  const weatherAdvice = getWeatherAdvice(activity, weather, tripDays);
+  const budgetAdvice = getBudgetAdvice(activity, budget, peopleCount, tripDays);
+  const safetyAdvice = getSafetyAdvice(activity, weather, tripDays, peopleCount);
+
+  return {
+    profile: getTripProfile(activity, weather, tripDays, peopleCount, budget),
+    strategy: getGearStrategy(activity, weather, tripDays, peopleCount, budget),
+    summary: getProfileSummary(activity, weather, tripDays, peopleCount, budget),
+    insights: [
+    {
+      type: "gear",
+      title: "装备取舍",
+      text: personalizeGearAdvice(gearAdvice, weather, tripDays, peopleCount, budget),
+    },
+    {
+      type: "weather",
+      title: "天气判断",
+      text: personalizeWeatherAdvice(weatherAdvice, weather, tripDays),
+    },
+    {
+      type: "budget",
+      title: "预算策略",
+      text: personalizeBudgetAdvice(budgetAdvice, activity, budget, peopleCount),
+    },
+    {
+      type: "safety",
+      title: "安全提醒",
+      text: personalizeSafetyAdvice(safetyAdvice, weather, tripDays, peopleCount),
+    },
+    ],
+  };
 }

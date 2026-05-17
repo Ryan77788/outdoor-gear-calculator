@@ -2,6 +2,8 @@ import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
+const SAVED_PLANS_COLLECTION = "saved_plans";
+
 type RouteContext = {
   params: Promise<{
     id: string;
@@ -18,7 +20,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     const client = await clientPromise;
     const db = client.db("outdoor");
-    const result = await db.collection("plans").deleteOne({ _id: new ObjectId(id) });
+    const result = await db.collection(SAVED_PLANS_COLLECTION).deleteOne({ _id: new ObjectId(id) });
 
     return NextResponse.json({ success: true, deletedCount: result.deletedCount });
   } catch (error) {

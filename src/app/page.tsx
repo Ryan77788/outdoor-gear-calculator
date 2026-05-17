@@ -6,16 +6,36 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { activityOptions, productUrl, type Activity, type Product } from "@/data/products";
 import {
   buildGearList,
+  getOutdoorInsights,
   getProductPlan,
   getRiskBlocks,
   tripDayOptions,
   weatherOptions,
   type GearItem,
+  type OutdoorInsightType,
   type RiskIconName,
   type RiskBlock,
   type TripDays,
   type Weather,
 } from "@/lib/recommendation";
+import {
+  formatCurrency as formatLocalizedCurrency,
+  formatQuantity,
+  formatPeople,
+  formatSavedTime as formatLocalizedSavedTime,
+  formatUnit,
+  localizeInsightReport,
+  localizeGearName,
+  localizeGearReason,
+  localizeProductCategory,
+  localizeProductName,
+  localizeProductReason,
+  localizeRiskText,
+  localizeRiskTitle,
+  localizeValue,
+  translations,
+  type Language,
+} from "@/lib/i18n";
 
 type IconName = RiskIconName;
 
@@ -39,6 +59,19 @@ type SavedPlan = FormState & {
 type PlansResponse = {
   success: boolean;
   plans?: SavedPlan[];
+};
+
+type SavePlanResponse = {
+  success: boolean;
+  planId?: string;
+  plan?: SavedPlan;
+};
+
+const insightIconNames: Record<OutdoorInsightType, IconName> = {
+  gear: "pack",
+  weather: "weather",
+  budget: "budget",
+  safety: "shield",
 };
 
 const iconPaths: Record<IconName, React.ReactNode> = {
@@ -111,26 +144,15 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
   );
 }
 
-function formatCurrency(value: number) {
-  return `¥${value.toLocaleString("zh-CN")}`;
-}
-
-function formatSavedTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 export default function Home() {
   const exportRef = useRef<HTMLDivElement | null>(null);
+  const [language, setLanguage] = useState<Language>("en");
   const [showResult, setShowResult] = useState(false);
   const [savePlanStatus, setSavePlanStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
+  const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [form, setForm] = useState<FormState>({
     activity: "露营",
@@ -153,6 +175,24 @@ export default function Home() {
     () => getRiskBlocks(form.activity, form.weather, form.tripDays),
     [form.activity, form.weather, form.tripDays],
   );
+  const insightReport = useMemo(
+    () => getOutdoorInsights(form.activity, form.weather, form.tripDays, form.peopleCount, form.budget),
+    [form.activity, form.weather, form.tripDays, form.peopleCount, form.budget],
+  );
+  const localizedInsightReport = useMemo(
+    () =>
+      localizeInsightReport(insightReport, language, {
+        activity: form.activity,
+        weather: form.weather,
+        tripDays: form.tripDays,
+        peopleCount: form.peopleCount,
+        budget: form.budget,
+      }),
+    [insightReport, language, form.activity, form.weather, form.tripDays, form.peopleCount, form.budget],
+  );
+  const t = translations[language];
+  const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
+  const displayValue = (value: string) => localizeValue(value, language);
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -225,6 +265,7 @@ export default function Home() {
 
   async function handleSavePlan() {
     setSavePlanStatus("saving");
+    setLastSavedPlanId(null);
 
     try {
       const response = await fetch("/api/plans", {
@@ -249,9 +290,12 @@ export default function Home() {
         throw new Error(`Save plan failed with status ${response.status}`);
       }
 
+      const result = (await response.json()) as SavePlanResponse;
+      const planId = result.planId ?? result.plan?._id ?? null;
+
+      setLastSavedPlanId(planId);
       setSavePlanStatus("saved");
       await loadSavedPlans();
-      window.setTimeout(() => setSavePlanStatus("idle"), 1600);
     } catch (error) {
       console.error("Failed to save plan:", error);
       setSavePlanStatus("idle");
@@ -297,6 +341,11 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to copy share link:", error);
     }
+  }
+
+  function handleViewSavedPlan(planId: string) {
+    const langParam = language === "zh" ? "?lang=zh" : "";
+    window.open(`/plan/${planId}${langParam}`, "_blank");
   }
 
   async function handleGenerateShareImage() {
@@ -365,6 +414,26 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <div className="fixed right-4 top-4 z-50 rounded-full border border-white/70 bg-white/90 p-1 text-sm font-bold shadow-lg shadow-slate-900/10 backdrop-blur">
+        <button
+          className={`rounded-full px-3 py-1.5 transition ${
+            language === "en" ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
+          onClick={() => setLanguage("en")}
+          type="button"
+        >
+          {translations.en.languageEnglish}
+        </button>
+        <button
+          className={`rounded-full px-3 py-1.5 transition ${
+            language === "zh" ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
+          onClick={() => setLanguage("zh")}
+          type="button"
+        >
+          {translations.zh.languageChinese}
+        </button>
+      </div>
       <section className="relative isolate overflow-hidden">
         <div
           aria-hidden="true"
@@ -384,13 +453,13 @@ export default function Home() {
             Outdoor Gear Planner
           </p>
           <h1 className="max-w-3xl text-5xl font-black leading-tight text-white drop-shadow-sm sm:text-6xl lg:text-7xl">
-            <span style={{ textShadow: "0 4px 22px rgba(0, 0, 0, 0.42)" }}>户外装备选择器</span>
+            <span style={{ textShadow: "0 4px 22px rgba(0, 0, 0, 0.42)" }}>{t.heroTitle}</span>
           </h1>
           <p
             className="mt-5 max-w-2xl text-lg leading-8 text-white/88 sm:text-xl"
             style={{ textShadow: "0 2px 14px rgba(0, 0, 0, 0.34)" }}
           >
-            根据活动类型、天气、人数和整套预算，生成更贴近真实出行场景的装备清单与组合推荐。
+            {t.heroDescription}
           </p>
         </div>
       </section>
@@ -401,7 +470,7 @@ export default function Home() {
             <label className="group block">
               <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                 <Icon className="h-4 w-4 text-emerald-700" name="activity" />
-                活动类型
+                {t.activityType}
               </span>
               <select
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -410,7 +479,7 @@ export default function Home() {
               >
                 {activityOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {displayValue(option)}
                   </option>
                 ))}
               </select>
@@ -419,7 +488,7 @@ export default function Home() {
             <label className="group block">
               <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                 <Icon className="h-4 w-4 text-emerald-700" name="calendar" />
-                出行天数
+                {t.tripDays}
               </span>
               <select
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -428,7 +497,7 @@ export default function Home() {
               >
                 {tripDayOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {displayValue(option)}
                   </option>
                 ))}
               </select>
@@ -437,7 +506,7 @@ export default function Home() {
             <label className="group block">
               <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                 <Icon className="h-4 w-4 text-emerald-700" name="weather" />
-                天气情况
+                {t.weather}
               </span>
               <select
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -446,7 +515,7 @@ export default function Home() {
               >
                 {weatherOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {displayValue(option)}
                   </option>
                 ))}
               </select>
@@ -455,7 +524,7 @@ export default function Home() {
             <label className="group block">
               <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                 <Icon className="h-4 w-4 text-emerald-700" name="people" />
-                出行人数
+                {t.peopleCount}
               </span>
               <input
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -470,7 +539,7 @@ export default function Home() {
             <label className="group block">
               <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                 <Icon className="h-4 w-4 text-emerald-700" name="budget" />
-                整套预算（元）
+                {t.budget}
               </span>
               <input
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -481,11 +550,11 @@ export default function Home() {
                 onChange={(event) => updateField("budget", Math.max(0, Number(event.target.value) || 0))}
               />
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                预算按本次出行的整套装备计算，不是单人预算。
+                {t.budgetHint}
               </p>
               {form.peopleCount > 1 && (
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  当前为 {form.peopleCount} 人总预算，系统会按人数估算消耗品和个人装备数量。
+                  {t.groupBudgetHint.replace("{count}", String(form.peopleCount))}
                 </p>
               )}
             </label>
@@ -497,7 +566,7 @@ export default function Home() {
               onClick={handleGenerate}
               type="button"
             >
-              生成装备清单
+              {t.generateGearList}
             </button>
           </div>
         </div>
@@ -505,6 +574,65 @@ export default function Home() {
 
       {showResult && (
         <>
+        <section className="mx-auto max-w-6xl px-6 pt-8">
+          <div className="rounded-2xl border border-white bg-white/94 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
+            <div className="mb-5 grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-stretch">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">
+                  AI Outdoor Insights
+                </p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">{t.aiPanelTitle}</h2>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm">
+                    {localizedInsightReport.profile}
+                  </span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800">
+                    {localizedInsightReport.strategy}
+                  </span>
+                </div>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">{localizedInsightReport.summary}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm">
+                <div className="rounded-lg bg-white px-3 py-2">
+                  <p className="text-xs font-bold text-slate-500">{t.activity}</p>
+                  <p className="mt-1 font-black text-slate-950">{displayValue(form.activity)}</p>
+                </div>
+                <div className="rounded-lg bg-white px-3 py-2">
+                  <p className="text-xs font-bold text-slate-500">{t.weather}</p>
+                  <p className="mt-1 font-black text-slate-950">{displayValue(form.weather)}</p>
+                </div>
+                <div className="rounded-lg bg-white px-3 py-2">
+                  <p className="text-xs font-bold text-slate-500">{t.trip}</p>
+                  <p className="mt-1 font-black text-slate-950">
+                    {displayValue(form.tripDays)} · {formatPeople(form.peopleCount, language)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white px-3 py-2">
+                  <p className="text-xs font-bold text-slate-500">{t.exportBudget}</p>
+                  <p className="mt-1 font-black text-slate-950">{formatMoney(form.budget)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {localizedInsightReport.insights.map((insight) => (
+                <article
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
+                  key={insight.type}
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <Icon className="h-4 w-4" name={insightIconNames[insight.type]} />
+                    </span>
+                    <h3 className="font-black text-slate-950">{insight.title}</h3>
+                  </div>
+                  <p className="text-sm leading-6 text-slate-600">{insight.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section
           className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-3"
           data-share-capture="result"
@@ -518,16 +646,16 @@ export default function Home() {
                 <Icon name="pack" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-950">必备装备</h2>
+                <h2 className="text-xl font-black text-slate-950">{t.requiredGear}</h2>
                 <p className="text-sm text-slate-500">
-                  {form.activity} · {form.tripDays} · {form.peopleCount}人
+                  {displayValue(form.activity)} · {displayValue(form.tripDays)} · {formatPeople(form.peopleCount, language)}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">按活动、天气、天数和人数动态生成。</p>
+                <p className="mt-1 text-xs text-slate-500">{t.requiredGearNote}</p>
               </div>
             </div>
             {hasMoreGear && (
               <p className="mb-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                向下滚动查看更多装备
+                {t.scrollMore}
               </p>
             )}
             <div className="min-h-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 p-2 pb-4">
@@ -541,11 +669,13 @@ export default function Home() {
                       <Icon className="h-3.5 w-3.5" name="check" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black text-slate-950">{item.name}</p>
-                      <p className="mt-0.5 text-sm leading-snug text-slate-500">{item.reason}</p>
+                      <p className="text-sm font-black text-slate-950">{localizeGearName(item, language)}</p>
+                      <p className="mt-0.5 text-sm leading-snug text-slate-500">
+                        {localizeGearReason(item, language)}
+                      </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100">
-                      {item.quantity}
+                      {formatQuantity(item.quantity, language)}
                     </span>
                   </li>
                 ))}
@@ -562,32 +692,32 @@ export default function Home() {
                 <Icon name="spark" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-950">推荐商品</h2>
-                <p className="text-sm text-slate-500">装备组合方案</p>
+                <h2 className="text-xl font-black text-slate-950">{t.recommendedProducts}</h2>
+                <p className="text-sm text-slate-500">{t.productPlan}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  整套预算：{formatCurrency(form.budget)} · 推荐组合总价：
-                  {formatCurrency(productPlan.totalPrice)} ·{" "}
-                  {productPlan.remainingBudget < 0 ? "小幅超出" : "剩余预算"}：
-                  {formatCurrency(Math.abs(productPlan.remainingBudget))}
+                  {t.totalBudget}：{formatMoney(form.budget)} · {t.recommendedTotal}：
+                  {formatMoney(productPlan.totalPrice)} ·{" "}
+                  {productPlan.remainingBudget < 0 ? t.slightlyOver : t.remainingBudget}：
+                  {formatMoney(Math.abs(productPlan.remainingBudget))}
                 </p>
               </div>
             </div>
 
             <div className="mb-4 grid grid-cols-3 gap-2 text-center text-xs">
               <div className="rounded-xl bg-slate-100 px-2 py-3">
-                <p className="font-semibold text-slate-500">整套预算</p>
-                <p className="mt-1 font-black text-slate-950">{formatCurrency(form.budget)}</p>
+                <p className="font-semibold text-slate-500">{t.totalBudget}</p>
+                <p className="mt-1 font-black text-slate-950">{formatMoney(form.budget)}</p>
               </div>
               <div className="rounded-xl bg-emerald-50 px-2 py-3">
-                <p className="font-semibold text-emerald-700">推荐组合总价</p>
-                <p className="mt-1 font-black text-emerald-800">{formatCurrency(productPlan.totalPrice)}</p>
+                <p className="font-semibold text-emerald-700">{t.recommendedTotal}</p>
+                <p className="mt-1 font-black text-emerald-800">{formatMoney(productPlan.totalPrice)}</p>
               </div>
               <div className="rounded-xl bg-amber-50 px-2 py-3">
                 <p className="font-semibold text-amber-700">
-                  {productPlan.remainingBudget < 0 ? "小幅超出" : "剩余预算"}
+                  {productPlan.remainingBudget < 0 ? t.slightlyOver : t.remainingBudget}
                 </p>
                 <p className="mt-1 font-black text-amber-800">
-                  {formatCurrency(Math.abs(productPlan.remainingBudget))}
+                  {formatMoney(Math.abs(productPlan.remainingBudget))}
                 </p>
               </div>
             </div>
@@ -599,7 +729,7 @@ export default function Home() {
                 onClick={() => void handleSavePlan()}
                 type="button"
               >
-                {savePlanStatus === "saved" ? "已保存" : "保存本次方案"}
+                {savePlanStatus === "saved" ? t.saved : t.savePlan}
               </button>
               <button
                 className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100 disabled:cursor-not-allowed disabled:opacity-70"
@@ -607,50 +737,91 @@ export default function Home() {
                 onClick={() => void handleGenerateShareImage()}
                 type="button"
               >
-                {isGeneratingShareImage ? "生成中..." : "生成分享图"}
+                {isGeneratingShareImage ? t.generating : t.generateShareImage}
               </button>
+              {lastSavedPlanId && (
+                <>
+                  <button
+                    className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 transition hover:bg-slate-50"
+                    onClick={() => handleViewSavedPlan(lastSavedPlanId)}
+                    type="button"
+                  >
+                    {t.viewSavedPlan}
+                  </button>
+                  <button
+                    className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100"
+                    onClick={() => void handleCopyShareLink(lastSavedPlanId)}
+                    type="button"
+                  >
+                    {copiedPlanId === lastSavedPlanId ? t.copied : t.copyShareLink}
+                  </button>
+                </>
+              )}
             </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1" data-share-scroll>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
               {productPlan.selectedProducts.map((product, index) => (
                 <div
-                  className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
                   key={`${product.name}-${product.quantity}-${index}`}
                 >
-                  <div className="flex gap-3">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200">
+                  <div className="flex items-start gap-3">
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200">
                       <Image
-                        alt={product.name}
+                        alt={localizeProductName(product, language)}
                         className="object-cover"
                         fill
-                        sizes="64px"
+                        sizes="80px"
                         src={product.image}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-bold text-slate-950">{product.name}</p>
-                        <p className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-black text-emerald-700">
-                          小计 {formatCurrency(product.subtotal)}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-base font-black leading-6 text-slate-950 break-words">
+                            {localizeProductName(product, language)}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {localizeProductCategory(product, language)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                          {formatMoney(product.subtotal)}
                         </p>
                       </div>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-600">
-                        <span>单价：{formatCurrency(product.unitPrice)} / {product.unit}</span>
-                        <span>
-                          数量：{product.quantity}
-                          {product.unit}
-                        </span>
-                        <span>小计：{formatCurrency(product.subtotal)}</span>
-                      </div>
-                      <p className="mt-1 text-sm leading-5 text-slate-500">{product.reason}</p>
                     </div>
                   </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                    <div className="min-w-0 rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200/70">
+                      <p className="font-bold text-slate-500">{t.unitPrice}</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
+                        {formatMoney(product.unitPrice)} / {formatUnit(product.unit, language)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200/70">
+                      <p className="font-bold text-slate-500">{t.quantity}</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
+                        {product.quantity}
+                        {formatUnit(product.unit, language)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 rounded-lg bg-emerald-50 px-3 py-2 ring-1 ring-emerald-100">
+                      <p className="font-bold text-emerald-700">{t.subtotal}</p>
+                      <p className="mt-1 break-words font-black text-emerald-800">{formatMoney(product.subtotal)}</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-500">
+                    {localizeProductReason(product, language)}
+                  </p>
+
                   <button
                     className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100"
                     onClick={() => void handleProductClick(product)}
                     type="button"
                   >
-                    查看商品
+                    {t.viewProduct}
                   </button>
                 </div>
               ))}
@@ -666,9 +837,9 @@ export default function Home() {
                 <Icon name="alert" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-amber-950">风险提示</h2>
+                <h2 className="text-xl font-black text-amber-950">{t.riskTips}</h2>
                 <p className="text-sm text-amber-700">
-                  {form.activity} · {form.weather} · {form.tripDays}
+                  {displayValue(form.activity)} · {displayValue(form.weather)} · {displayValue(form.tripDays)}
                 </p>
               </div>
             </div>
@@ -683,9 +854,9 @@ export default function Home() {
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
                       <Icon className="h-4 w-4" name={risk.icon} />
                     </span>
-                    {risk.title}
+                    {localizeRiskTitle(risk, language)}
                   </div>
-                  <p className="text-sm leading-6 text-amber-900/80">{risk.text}</p>
+                  <p className="text-sm leading-6 text-amber-900/80">{localizeRiskText(risk, language)}</p>
                 </div>
               ))}
             </div>
@@ -716,10 +887,11 @@ export default function Home() {
               Outdoor Gear Planner
             </p>
             <h2 style={{ color: "#0f172a", fontSize: "42px", fontWeight: 900, lineHeight: 1.15, margin: 0 }}>
-              户外装备方案
+              {t.shareImageTitle}
             </h2>
             <p style={{ color: "#475569", fontSize: "18px", lineHeight: 1.6, margin: "14px 0 0" }}>
-              {form.activity} · {form.weather} · {form.tripDays} · {form.peopleCount}人
+              {displayValue(form.activity)} · {displayValue(form.weather)} · {displayValue(form.tripDays)} ·{" "}
+              {formatPeople(form.peopleCount, language)}
             </p>
           </div>
 
@@ -732,11 +904,11 @@ export default function Home() {
             }}
           >
             {[
-              ["活动", form.activity],
-              ["天气", form.weather],
-              ["天数", form.tripDays],
-              ["人数", `${form.peopleCount}人`],
-              ["预算", formatCurrency(form.budget)],
+              [t.exportActivity, displayValue(form.activity)],
+              [t.exportWeather, displayValue(form.weather)],
+              [t.exportDays, displayValue(form.tripDays)],
+              [t.exportPeople, formatPeople(form.peopleCount, language)],
+              [t.exportBudget, formatMoney(form.budget)],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -758,7 +930,7 @@ export default function Home() {
           <div style={{ display: "grid", gap: "20px", gridTemplateColumns: "1fr 1fr", marginTop: "28px" }}>
             <section>
               <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-                必备装备
+                {t.requiredGear}
               </h3>
               <div style={{ display: "grid", gap: "10px" }}>
                 {gearList.slice(0, 8).map((item, index) => (
@@ -773,12 +945,14 @@ export default function Home() {
                   >
                     <div style={{ alignItems: "center", display: "flex", gap: "10px", justifyContent: "space-between" }}>
                       <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                        {index + 1}. {item.name}
+                        {index + 1}. {localizeGearName(item, language)}
                       </p>
-                      <span style={{ color: "#047857", fontSize: "14px", fontWeight: 900 }}>{item.quantity}</span>
+                      <span style={{ color: "#047857", fontSize: "14px", fontWeight: 900 }}>
+                        {formatQuantity(item.quantity, language)}
+                      </span>
                     </div>
                     <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
-                      {item.reason}
+                      {localizeGearReason(item, language)}
                     </p>
                   </div>
                 ))}
@@ -787,7 +961,7 @@ export default function Home() {
 
             <section>
               <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-                推荐商品
+                {t.recommendedProducts}
               </h3>
               <div style={{ display: "grid", gap: "10px" }}>
                 {productPlan.selectedProducts.slice(0, 5).map((product, index) => (
@@ -802,15 +976,15 @@ export default function Home() {
                   >
                     <div style={{ display: "flex", gap: "12px", justifyContent: "space-between" }}>
                       <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                        {product.name}
+                        {localizeProductName(product, language)}
                       </p>
                       <p style={{ color: "#047857", fontSize: "14px", fontWeight: 900, margin: 0 }}>
-                        {formatCurrency(product.subtotal)}
+                        {formatMoney(product.subtotal)}
                       </p>
                     </div>
                     <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
-                      数量：{product.quantity}
-                      {product.unit} · 单价：{formatCurrency(product.unitPrice)}
+                      {t.quantity}：{product.quantity}
+                      {formatUnit(product.unit, language)} · {t.unitPrice}：{formatMoney(product.unitPrice)}
                     </p>
                   </div>
                 ))}
@@ -825,7 +999,7 @@ export default function Home() {
                 }}
               >
                 <p style={{ color: "#047857", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                  推荐组合总价：{formatCurrency(productPlan.totalPrice)}
+                  {t.recommendedTotal}：{formatMoney(productPlan.totalPrice)}
                 </p>
               </div>
             </section>
@@ -833,7 +1007,7 @@ export default function Home() {
 
           <section style={{ marginTop: "28px" }}>
             <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-              风险提示
+              {t.riskTips}
             </h3>
             <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(3, 1fr)" }}>
               {risks.slice(0, 3).map((risk, index) => (
@@ -847,9 +1021,11 @@ export default function Home() {
                   }}
                 >
                   <p style={{ color: "#78350f", fontSize: "16px", fontWeight: 900, margin: "0 0 8px" }}>
-                    {risk.title}
+                    {localizeRiskTitle(risk, language)}
                   </p>
-                  <p style={{ color: "#92400e", fontSize: "13px", lineHeight: 1.6, margin: 0 }}>{risk.text}</p>
+                  <p style={{ color: "#92400e", fontSize: "13px", lineHeight: 1.6, margin: 0 }}>
+                    {localizeRiskText(risk, language)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -863,14 +1039,14 @@ export default function Home() {
                 <Icon name="calendar" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-950">我的方案库</h2>
-                <p className="text-sm text-slate-500">最近保存的装备方案</p>
+                <h2 className="text-xl font-black text-slate-950">{t.myPlans}</h2>
+                <p className="text-sm text-slate-500">{t.recentPlans}</p>
               </div>
             </div>
 
             {savedPlans.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-500">
-                暂无保存方案。
+                {t.noSavedPlans}
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -881,19 +1057,20 @@ export default function Home() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-black text-slate-950">{plan.activity}</p>
+                        <p className="font-black text-slate-950">{localizeValue(plan.activity, language)}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          {plan.weather} · {plan.tripDays} · {plan.peopleCount}人
+                          {localizeValue(plan.weather, language)} · {localizeValue(plan.tripDays, language)} ·{" "}
+                          {formatPeople(plan.peopleCount, language)}
                         </p>
                       </div>
                       <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
-                        {formatCurrency(plan.totalPrice)}
+                        {formatMoney(plan.totalPrice)}
                       </span>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                      <span>预算：{formatCurrency(plan.budget)}</span>
-                      <span>保存：{formatSavedTime(plan.createdAt)}</span>
+                      <span>{t.exportBudget}：{formatMoney(plan.budget)}</span>
+                      <span>{t.savedAt}：{formatLocalizedSavedTime(plan.createdAt, language)}</span>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
@@ -902,7 +1079,7 @@ export default function Home() {
                         onClick={() => handleLoadPlan(plan)}
                         type="button"
                       >
-                        重新加载
+                        {t.reload}
                       </button>
                       <button
                         className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
@@ -910,14 +1087,14 @@ export default function Home() {
                         onClick={() => void handleDeletePlan(plan._id)}
                         type="button"
                       >
-                        删除
+                        {t.delete}
                       </button>
                       <button
                         className="col-span-2 inline-flex h-9 items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100"
                         onClick={() => void handleCopyShareLink(plan._id)}
                         type="button"
                       >
-                        {copiedPlanId === plan._id ? "已复制" : "复制分享链接"}
+                        {copiedPlanId === plan._id ? t.copied : t.copyShareLink}
                       </button>
                     </div>
                   </div>
@@ -931,4 +1108,5 @@ export default function Home() {
     </main>
   );
 }
+
 

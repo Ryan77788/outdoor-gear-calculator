@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
 const PLANS_LIMIT = 20;
+const SAVED_PLANS_COLLECTION = "saved_plans";
 
 export async function GET() {
   try {
     const client = await clientPromise;
     const db = client.db("outdoor");
     const plans = await db
-      .collection("plans")
+      .collection(SAVED_PLANS_COLLECTION)
       .find({})
       .sort({ createdAt: -1 })
       .limit(PLANS_LIMIT)
@@ -46,13 +47,15 @@ export async function POST(request: Request) {
       totalPrice: body.totalPrice,
       createdAt,
     };
-    const result = await db.collection("plans").insertOne(plan);
+    const result = await db.collection(SAVED_PLANS_COLLECTION).insertOne(plan);
+    const planId = result.insertedId.toString();
 
     return NextResponse.json({
       success: true,
+      planId,
       plan: {
         ...plan,
-        _id: result.insertedId.toString(),
+        _id: planId,
       },
     });
   } catch (error) {
