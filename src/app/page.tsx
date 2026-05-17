@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import html2canvas from "html2canvas";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { activityOptions, productUrl, type Activity, type Product } from "@/data/products";
 import {
   buildGearList,
@@ -124,11 +125,13 @@ function formatSavedTime(value: string) {
 }
 
 export default function Home() {
+  const exportRef = useRef<HTMLDivElement | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [savePlanStatus, setSavePlanStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
+  const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [form, setForm] = useState<FormState>({
     activity: "露营",
     tripDays: "1天",
@@ -293,6 +296,38 @@ export default function Home() {
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
     } catch (error) {
       console.error("Failed to copy share link:", error);
+    }
+  }
+
+  async function handleGenerateShareImage() {
+    if (!exportRef.current) {
+      return;
+    }
+
+    setIsGeneratingShareImage(true);
+
+    try {
+      const exportElement = exportRef.current;
+
+      exportElement.style.display = "block";
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+      const canvas = await html2canvas(exportElement, {
+        backgroundColor: "#ffffff",
+        scale: Math.min(2, window.devicePixelRatio || 1),
+      });
+      const link = document.createElement("a");
+
+      link.download = "outdoor-plan.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (error) {
+      console.error("Failed to generate share image:", error);
+    } finally {
+      if (exportRef.current) {
+        exportRef.current.style.display = "none";
+      }
+      setIsGeneratingShareImage(false);
     }
   }
 
@@ -470,8 +505,14 @@ export default function Home() {
 
       {showResult && (
         <>
-        <section className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-3">
-          <article className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
+        <section
+          className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-3"
+          data-share-capture="result"
+        >
+          <article
+            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
+            data-share-card
+          >
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 shadow-sm">
                 <Icon name="pack" />
@@ -490,7 +531,7 @@ export default function Home() {
               </p>
             )}
             <div className="min-h-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 p-2 pb-4">
-              <ul className="max-h-[430px] space-y-1 overflow-y-auto overflow-x-hidden pr-1">
+              <ul className="max-h-[430px] space-y-1 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
                 {gearList.map((item, index) => (
                   <li
                     className="flex min-h-[72px] items-center gap-3 rounded-lg bg-white/70 px-3 py-2"
@@ -512,7 +553,10 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
+          <article
+            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
+            data-share-card
+          >
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-100 text-lime-700 shadow-sm">
                 <Icon name="spark" />
@@ -548,16 +592,26 @@ export default function Home() {
               </div>
             </div>
 
-            <button
-              className="mb-4 inline-flex h-10 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={savePlanStatus === "saving"}
-              onClick={() => void handleSavePlan()}
-              type="button"
-            >
-              {savePlanStatus === "saved" ? "已保存" : "保存本次方案"}
-            </button>
+            <div className="mb-4 grid gap-2 sm:grid-cols-2" data-hide-in-share>
+              <button
+                className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={savePlanStatus === "saving"}
+                onClick={() => void handleSavePlan()}
+                type="button"
+              >
+                {savePlanStatus === "saved" ? "已保存" : "保存本次方案"}
+              </button>
+              <button
+                className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isGeneratingShareImage}
+                onClick={() => void handleGenerateShareImage()}
+                type="button"
+              >
+                {isGeneratingShareImage ? "生成中..." : "生成分享图"}
+              </button>
+            </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1" data-share-scroll>
               {productPlan.selectedProducts.map((product, index) => (
                 <div
                   className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
@@ -603,7 +657,10 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-amber-200/80 bg-amber-50/92 p-5 shadow-lg shadow-amber-950/5 ring-1 ring-white/70 backdrop-blur">
+          <article
+            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-amber-200/80 bg-amber-50/92 p-5 shadow-lg shadow-amber-950/5 ring-1 ring-white/70 backdrop-blur"
+            data-share-card
+          >
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-200 text-amber-800 shadow-sm">
                 <Icon name="alert" />
@@ -616,7 +673,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1" data-share-scroll>
               {risks.map((risk, index) => (
                 <div
                   className="rounded-xl border border-amber-200/70 bg-white/78 p-4 shadow-sm"
@@ -634,6 +691,170 @@ export default function Home() {
             </div>
           </article>
         </section>
+
+        <div
+          ref={exportRef}
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "24px",
+            boxShadow: "none",
+            color: "#0f172a",
+            display: "none",
+            fontFamily:
+              'Arial, "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif',
+            left: "-9999px",
+            padding: "40px",
+            position: "fixed",
+            top: "0",
+            width: "900px",
+            zIndex: "-1",
+          }}
+        >
+          <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: "24px" }}>
+            <p style={{ color: "#047857", fontSize: "16px", fontWeight: 700, margin: "0 0 10px" }}>
+              Outdoor Gear Planner
+            </p>
+            <h2 style={{ color: "#0f172a", fontSize: "42px", fontWeight: 900, lineHeight: 1.15, margin: 0 }}>
+              户外装备方案
+            </h2>
+            <p style={{ color: "#475569", fontSize: "18px", lineHeight: 1.6, margin: "14px 0 0" }}>
+              {form.activity} · {form.weather} · {form.tripDays} · {form.peopleCount}人
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gap: "12px",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              marginTop: "24px",
+            }}
+          >
+            {[
+              ["活动", form.activity],
+              ["天气", form.weather],
+              ["天数", form.tripDays],
+              ["人数", `${form.peopleCount}人`],
+              ["预算", formatCurrency(form.budget)],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "16px",
+                  padding: "14px",
+                }}
+              >
+                <p style={{ color: "#64748b", fontSize: "13px", fontWeight: 700, margin: "0 0 6px" }}>
+                  {label}
+                </p>
+                <p style={{ color: "#0f172a", fontSize: "18px", fontWeight: 900, margin: 0 }}>{value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gap: "20px", gridTemplateColumns: "1fr 1fr", marginTop: "28px" }}>
+            <section>
+              <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
+                必备装备
+              </h3>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {gearList.slice(0, 8).map((item, index) => (
+                  <div
+                    key={`${item.name}-${index}`}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "12px",
+                    }}
+                  >
+                    <div style={{ alignItems: "center", display: "flex", gap: "10px", justifyContent: "space-between" }}>
+                      <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
+                        {index + 1}. {item.name}
+                      </p>
+                      <span style={{ color: "#047857", fontSize: "14px", fontWeight: 900 }}>{item.quantity}</span>
+                    </div>
+                    <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
+                      {item.reason}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
+                推荐商品
+              </h3>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {productPlan.selectedProducts.slice(0, 5).map((product, index) => (
+                  <div
+                    key={`${product.name}-${index}`}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: "12px", justifyContent: "space-between" }}>
+                      <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
+                        {product.name}
+                      </p>
+                      <p style={{ color: "#047857", fontSize: "14px", fontWeight: 900, margin: 0 }}>
+                        {formatCurrency(product.subtotal)}
+                      </p>
+                    </div>
+                    <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
+                      数量：{product.quantity}
+                      {product.unit} · 单价：{formatCurrency(product.unitPrice)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "14px",
+                  marginTop: "14px",
+                  padding: "14px",
+                }}
+              >
+                <p style={{ color: "#047857", fontSize: "16px", fontWeight: 900, margin: 0 }}>
+                  推荐组合总价：{formatCurrency(productPlan.totalPrice)}
+                </p>
+              </div>
+            </section>
+          </div>
+
+          <section style={{ marginTop: "28px" }}>
+            <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
+              风险提示
+            </h3>
+            <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(3, 1fr)" }}>
+              {risks.slice(0, 3).map((risk, index) => (
+                <div
+                  key={`${risk.title}-${index}`}
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: "14px",
+                    padding: "14px",
+                  }}
+                >
+                  <p style={{ color: "#78350f", fontSize: "16px", fontWeight: 900, margin: "0 0 8px" }}>
+                    {risk.title}
+                  </p>
+                  <p style={{ color: "#92400e", fontSize: "13px", lineHeight: 1.6, margin: 0 }}>{risk.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
 
         <section className="mx-auto max-w-6xl px-6 pb-10">
           <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
