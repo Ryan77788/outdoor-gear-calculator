@@ -128,6 +128,7 @@ export default function Home() {
   const [savePlanStatus, setSavePlanStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+  const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({
     activity: "露营",
     tripDays: "1天",
@@ -170,7 +171,28 @@ export default function Home() {
   }
 
   useEffect(() => {
-    void loadSavedPlans();
+    const controller = new AbortController();
+
+    fetch("/api/plans", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Load plans failed with status ${response.status}`);
+        }
+
+        return response.json() as Promise<PlansResponse>;
+      })
+      .then((result) => {
+        setSavedPlans(result.plans ?? []);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Failed to load saved plans:", error);
+      });
+
+    return () => controller.abort();
   }, []);
 
   async function handleGenerate() {
@@ -261,6 +283,16 @@ export default function Home() {
       console.error("Failed to delete saved plan:", error);
     } finally {
       setDeletingPlanId(null);
+    }
+  }
+
+  async function handleCopyShareLink(planId: string) {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}`);
+      setCopiedPlanId(planId);
+      window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
+    } catch (error) {
+      console.error("Failed to copy share link:", error);
     }
   }
 
@@ -658,6 +690,13 @@ export default function Home() {
                         type="button"
                       >
                         删除
+                      </button>
+                      <button
+                        className="col-span-2 inline-flex h-9 items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100"
+                        onClick={() => void handleCopyShareLink(plan._id)}
+                        type="button"
+                      >
+                        {copiedPlanId === plan._id ? "已复制" : "复制分享链接"}
                       </button>
                     </div>
                   </div>
