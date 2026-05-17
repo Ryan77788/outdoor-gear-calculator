@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ObjectId } from "mongodb";
@@ -181,6 +181,17 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
   }
 
   const remainingBudget = plan.budget - plan.totalPrice;
+  const insightReport = localizeInsightReport(
+    getOutdoorInsights(plan.activity, plan.weather, plan.tripDays, plan.peopleCount, plan.budget),
+    language,
+    {
+      activity: plan.activity,
+      weather: plan.weather,
+      tripDays: plan.tripDays,
+      peopleCount: plan.peopleCount,
+      budget: plan.budget,
+    },
+  );
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
@@ -202,7 +213,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
             {localizeValue(plan.activity, language)} {language === "en" ? "Gear Plan" : "装备方案"}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
-            {formatPeople(plan.peopleCount, language)} · {localizeValue(plan.tripDays, language)} ·{" "}
+            {formatPeople(plan.peopleCount, language)} · {localizeValue(plan.tripDays, language)} 路{" "}
             {localizeValue(plan.weather, language)} · {t.savedAt} {formatSavedTime(plan.createdAt, language)}
           </p>
         </div>
@@ -224,6 +235,32 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
             <InfoCard label={t.savedTime} value={formatSavedTime(plan.createdAt, language)} />
           </div>
         </div>
+
+        <article className="mt-6 rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">AI Outdoor Insights</p>
+              <h2 className="mt-1 text-2xl font-black text-slate-950">{t.aiPanelTitle}</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{insightReport.summary}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white">
+                {insightReport.profile}
+              </span>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800">
+                {insightReport.strategy}
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {insightReport.insights.map((insight) => (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4" key={insight.type}>
+                <h3 className="font-black text-slate-950">{insight.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{insight.text}</p>
+              </div>
+            ))}
+          </div>
+        </article>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.35fr]">
           <article className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
@@ -311,7 +348,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
           <div className="mb-4">
             <h2 className="text-xl font-black text-amber-950">{t.riskTips}</h2>
             <p className="mt-1 text-sm text-amber-700">
-              {localizeValue(plan.activity, language)} · {localizeValue(plan.weather, language)} ·{" "}
+              {localizeValue(plan.activity, language)} · {localizeValue(plan.weather, language)} 路{" "}
               {localizeValue(plan.tripDays, language)}
             </p>
           </div>
@@ -328,3 +365,4 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
     </main>
   );
 }
+
