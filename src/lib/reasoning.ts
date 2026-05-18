@@ -76,6 +76,54 @@ function activityReasoning(activity: Activity, language: Language): Recommendati
         tone: "standard",
         bullets: ["防晒、防水收纳和速干装备会直接影响舒适度。", "海边反光、潮气和风会放大皮肤与电子设备风险。"],
       },
+      越野跑: {
+        icon: "clock",
+        title: "速度与补给判断",
+        tone: "elevated",
+        bullets: ["跑鞋抓地、补水背心和照明冗余决定路线稳定性。", "高心率运动会放大脱水、抽筋和下坡摔倒风险。"],
+      },
+      重装徒步: {
+        icon: "pack",
+        title: "负重系统判断",
+        tone: "elevated",
+        bullets: ["背包、鞋靴、帐篷和睡眠系统决定多日行程恢复。", "负重越高，减重和稳定背负越能影响后续体力。"],
+      },
+      攀岩: {
+        icon: "shield",
+        title: "保护与撤退判断",
+        tone: "high",
+        bullets: ["攀岩鞋、头盔和基础急救优先级高于舒适配件。", "落石、延误和下降路线会提高照明与安全冗余需求。"],
+      },
+      皮划艇: {
+        icon: "weather",
+        title: "水面安全判断",
+        tone: "high",
+        bullets: ["救生衣、防水袋和回岸计划是水面活动的基础。", "风浪、水温和强反光会同时影响安全与体力。"],
+      },
+      单板滑雪: {
+        icon: "shield",
+        title: "单板控制判断",
+        tone: "high",
+        bullets: ["雪板、固定器、雪鞋、头盔和雪镜直接影响控制。", "低温、高速和摔倒频率让防护装备权重更高。"],
+      },
+      沙漠徒步: {
+        icon: "weather",
+        title: "高温与补水判断",
+        tone: "high",
+        bullets: ["饮水、防晒、遮阳和路线冗余必须优先覆盖。", "沙地反光和干热会快速增加脱水与迷航风险。"],
+      },
+      冬季露营: {
+        icon: "clock",
+        title: "夜间保暖判断",
+        tone: "high",
+        bullets: ["帐篷、睡袋、防潮垫和炉具共同决定夜间安全。", "低温下湿衣物、长夜和静止等待会提高失温风险。"],
+      },
+      海边露营: {
+        icon: "weather",
+        title: "潮汐营地判断",
+        tone: "elevated",
+        bullets: ["帐篷固定、防水收纳和食物冷藏影响营地稳定。", "潮汐、强风和盐雾会放大普通露营的小问题。"],
+      },
     };
 
     return activityRules[activity];
@@ -129,6 +177,54 @@ function activityReasoning(activity: Activity, language: Language): Recommendati
       title: "Sun and water reasoning",
       tone: "standard",
       bullets: ["Sun protection, dry storage, and quick-dry gear drive comfort.", "Reflection, humidity, and wind amplify skin and electronics risk."],
+    },
+    越野跑: {
+      icon: "clock",
+      title: "Pace and fuel reasoning",
+      tone: "elevated",
+      bullets: ["Traction, hydration carry, and lighting redundancy keep the route stable.", "Higher intensity increases dehydration, cramp, and downhill fall risk."],
+    },
+    重装徒步: {
+      icon: "pack",
+      title: "Load system reasoning",
+      tone: "elevated",
+      bullets: ["Pack fit, boots, shelter, and sleep system shape multi-day recovery.", "Heavier loads make weight savings and stable carry more valuable each day."],
+    },
+    攀岩: {
+      icon: "shield",
+      title: "Protection and retreat reasoning",
+      tone: "high",
+      bullets: ["Climbing shoes, helmet, and first-aid basics outrank comfort accessories.", "Rockfall, delays, and descent plans raise lighting and safety redundancy needs."],
+    },
+    皮划艇: {
+      icon: "weather",
+      title: "On-water safety reasoning",
+      tone: "high",
+      bullets: ["PFD, dry storage, and a return-to-shore plan come first.", "Wind, water temperature, and glare affect safety and fatigue at the same time."],
+    },
+    单板滑雪: {
+      icon: "shield",
+      title: "Snowboard control reasoning",
+      tone: "high",
+      bullets: ["Board, bindings, boots, helmet, and goggles directly shape control.", "Cold, speed, and frequent falls raise the weight of protective gear."],
+    },
+    沙漠徒步: {
+      icon: "weather",
+      title: "Heat and hydration reasoning",
+      tone: "high",
+      bullets: ["Water, sun protection, shade, and route redundancy must come first.", "Sand reflection and dry heat quickly increase dehydration and navigation risk."],
+    },
+    冬季露营: {
+      icon: "clock",
+      title: "Overnight warmth reasoning",
+      tone: "high",
+      bullets: ["Tent, sleeping bag, pad, and stove work together as the overnight safety system.", "Wet clothing, long nights, and stillness raise hypothermia risk."],
+    },
+    海边露营: {
+      icon: "weather",
+      title: "Tide-aware camp reasoning",
+      tone: "elevated",
+      bullets: ["Tent anchoring, dry storage, and cold food storage drive camp stability.", "Tides, wind, and salt air can amplify ordinary camping issues."],
     },
   };
 

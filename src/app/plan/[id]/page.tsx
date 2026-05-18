@@ -318,6 +318,11 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
                         sizes="72px"
                         src={product.image}
                       />
+                      {product.imageStatus !== "matched" && (
+                        <span className="absolute bottom-1 left-1 right-1 rounded-md bg-slate-950/78 px-1 py-0.5 text-center text-[9px] font-black text-white">
+                          {language === "zh" ? "图片待确认" : "Image pending"}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -345,6 +350,11 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
                       </div>
                       <p className="mt-2 text-sm leading-6 text-slate-500">
                         {localizeProductReason(product, language)}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-slate-400">
+                        {language === "zh"
+                          ? "当前为搜索链接，具体商品以后人工确认。"
+                          : "Search result link, exact product may vary."}
                       </p>
                     </div>
                   </div>

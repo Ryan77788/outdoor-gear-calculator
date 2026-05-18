@@ -111,6 +111,14 @@ const activityCoreGearCategories: Record<Activity, GearCategory[]> = {
   自驾游: ["power", "cooler", "firstAid", "tableChair", "vehicleTool"],
   骑行: ["helmet", "gloves", "lighting", "repair", "water"],
   海边旅行: ["sunscreen", "sunHat", "dryBag", "beachMat", "towel"],
+  越野跑: ["shoes", "backpack", "headlamp", "water", "electrolyte"],
+  重装徒步: ["backpack", "shoes", "tent", "sleepingBag", "mat"],
+  攀岩: ["shoes", "helmet", "headlamp", "gloves", "firstAid"],
+  皮划艇: ["helmet", "dryBag", "sunHat", "sunglasses", "water"],
+  单板滑雪: ["skiBoard", "skiBinding", "skiBoots", "helmet", "goggles"],
+  沙漠徒步: ["shoes", "backpack", "sunHat", "water", "sunglasses"],
+  冬季露营: ["tent", "sleepingBag", "mat", "stove", "lighting"],
+  海边露营: ["tent", "dryBag", "sunHat", "cooler", "towel"],
 };
 
 const highValueUpgradeCategories = new Set<GearCategory>([
@@ -211,6 +219,62 @@ const activityGear: Record<Activity, GearTemplate[]> = {
     { name: "沙滩垫", reason: "坐卧休息更舒适，减少沙土附着。", priority: "comfort" },
     { name: "速干毛巾", reason: "涉水或游泳后快速擦干。", priority: "comfort" },
   ],
+  越野跑: [
+    { name: "越野跑鞋", nameEn: "Trail running shoes", reason: "提升泥地、碎石和下坡路面的抓地与稳定。", reasonEn: "Improves grip and stability on dirt, rock, and descents.", priority: "core" },
+    { name: "跑步背心", nameEn: "Running hydration vest", reason: "把补水、能量胶和轻量外层固定在身体附近。", reasonEn: "Keeps hydration, nutrition, and light layers close without bounce.", priority: "core" },
+    { name: "头灯", reason: "清晨、傍晚或林线阴影下保持可见度。", priority: "safety" },
+    { name: "电解质补水", reason: "高心率运动中补充盐分，降低抽筋和脱水风险。", priority: "safety" },
+    { name: "速干衣", reason: "排汗更快，减少长时间湿冷摩擦。", priority: "weather" },
+  ],
+  重装徒步: [
+    { name: "重装背包", nameEn: "Backpacking pack", reason: "承载帐篷、睡眠系统和多日补给，背负稳定性优先。", reasonEn: "Carries shelter, sleep system, and multi-day supplies with stable load transfer.", priority: "core" },
+    { name: "徒步鞋", reason: "长距离负重时保护脚踝并降低水泡风险。", priority: "core" },
+    { name: "帐篷", reason: "提供多日行程中的基础庇护和防雨空间。", priority: "core" },
+    { name: "睡袋", reason: "保证夜间恢复，避免低温影响第二天体力。", priority: "weather" },
+    { name: "防潮垫", reason: "隔绝地面冷湿，提升睡眠系统保暖效率。", priority: "weather" },
+  ],
+  攀岩: [
+    { name: "攀岩鞋", nameEn: "Climbing shoes", reason: "提升踩点精度和脚部摩擦力。", reasonEn: "Improves foot precision and friction on holds.", priority: "core" },
+    { name: "头盔", reason: "降低落石、磕碰和保护站附近冲击风险。", priority: "safety" },
+    { name: "头灯", reason: "长线路线、下降或延误时提供照明冗余。", priority: "safety" },
+    { name: "手套", reason: "保护手掌并提升绳索操作舒适度。", priority: "core" },
+    { name: "急救包", reason: "处理擦伤、割伤和扭伤等常见岩壁风险。", priority: "safety" },
+  ],
+  皮划艇: [
+    { name: "救生衣", nameEn: "Kayak PFD", reason: "水上活动的核心安全装备，必须优先覆盖。", reasonEn: "Core water-safety gear that should be covered first.", priority: "safety" },
+    { name: "防水袋", reason: "保护手机、衣物和应急物品免受进水影响。", priority: "safety" },
+    { name: "遮阳帽", reason: "长时间水面反光下减少头面部暴晒。", priority: "weather" },
+    { name: "太阳镜", reason: "降低水面眩光，提升观察和划行舒适度。", priority: "weather" },
+    { name: "水壶", reason: "水面活动容易忽略补水，需要固定携带。", priority: "core" },
+  ],
+  单板滑雪: [
+    { name: "滑雪板", nameEn: "Snowboard", reason: "单板滑行的核心装备，决定控制和稳定性。", reasonEn: "The core snowboard setup item for control and stability.", priority: "core" },
+    { name: "固定器", reason: "影响力量传递、转弯响应和摔倒释放体验。", priority: "core" },
+    { name: "雪鞋", reason: "贴合度直接影响脚踝支撑和长时间舒适度。", priority: "core" },
+    { name: "头盔", reason: "减少摔倒和碰撞造成的头部风险。", priority: "safety" },
+    { name: "滑雪镜", reason: "提升雪面可视性并减少风雪刺激。", priority: "safety" },
+  ],
+  沙漠徒步: [
+    { name: "透气徒步鞋", nameEn: "Breathable hiking shoes", reason: "兼顾热环境散热和沙石路面支撑。", reasonEn: "Balances hot-weather breathability with support on sand and rock.", priority: "core" },
+    { name: "徒步背包", reason: "稳定携带大容量饮水、防晒和应急补给。", priority: "core" },
+    { name: "遮阳帽", reason: "降低热辐射和中暑风险。", priority: "weather" },
+    { name: "水袋", reason: "高温干燥环境下补水优先级最高。", priority: "safety" },
+    { name: "太阳镜", reason: "减少沙地反光和风沙刺激。", priority: "weather" },
+  ],
+  冬季露营: [
+    { name: "冬季帐篷", nameEn: "Winter tent", reason: "应对低温、风雪和更强营地防护需求。", reasonEn: "Handles cold, wind, snow, and stronger shelter demands.", priority: "core" },
+    { name: "冬季睡袋", nameEn: "Winter sleeping bag", reason: "夜间保暖是冬季露营的核心安全边界。", reasonEn: "Overnight warmth is the main safety margin in winter camping.", priority: "weather" },
+    { name: "防潮垫", reason: "提升地面隔热，避免睡眠系统热量流失。", priority: "weather" },
+    { name: "炉具", reason: "用于热饮、热食和低温下的补给恢复。", priority: "core" },
+    { name: "营地灯", reason: "冬季夜长，需要更可靠的营地照明。", priority: "safety" },
+  ],
+  海边露营: [
+    { name: "海边帐篷", nameEn: "Beach camping tent", reason: "兼顾通风、防风和沙地固定。", reasonEn: "Balances ventilation, wind protection, and sand anchoring.", priority: "core" },
+    { name: "防水袋", reason: "隔离潮气、沙粒和海水溅湿。", priority: "safety" },
+    { name: "遮阳帽", reason: "降低白天强光和中暑风险。", priority: "weather" },
+    { name: "保温箱", reason: "保存饮品和食材，提升海边营地补给稳定性。", priority: "comfort" },
+    { name: "速干毛巾", reason: "涉水后快速擦干，减少潮湿不适。", priority: "comfort" },
+  ],
 };
 
 const weatherGear: Record<Weather, GearTemplate[]> = {
@@ -306,6 +370,15 @@ const gearQuantityRulesByName: Record<string, GearQuantityRule> = {
   速干毛巾: { gearCategory: "towel", gearType: "perPerson", unit: "条" },
   防晒霜: { gearCategory: "sunscreen", gearType: "consumable", unit: "瓶" },
   电解质补水: { gearCategory: "electrolyte", gearType: "consumable", unit: "片" },
+  越野跑鞋: { gearCategory: "shoes", gearType: "perPerson", unit: "双" },
+  跑步背心: { gearCategory: "backpack", gearType: "perPerson", unit: "个" },
+  重装背包: { gearCategory: "backpack", gearType: "perPerson", unit: "个" },
+  攀岩鞋: { gearCategory: "shoes", gearType: "perPerson", unit: "双" },
+  救生衣: { gearCategory: "helmet", gearType: "perPerson", unit: "件" },
+  透气徒步鞋: { gearCategory: "shoes", gearType: "perPerson", unit: "双" },
+  冬季帐篷: { gearCategory: "tent", gearType: "shared", unit: "顶" },
+  冬季睡袋: { gearCategory: "sleepingBag", gearType: "perPerson", unit: "个" },
+  海边帐篷: { gearCategory: "tent", gearType: "shared", unit: "顶" },
 };
 
 function getTripDaysCount(tripDays: TripDays) {
@@ -874,6 +947,14 @@ export function getRiskBlocks(activity: Activity, weather: Weather, tripDays: Tr
     自驾游: { icon: "shield", title: "车辆检查", text: "出发前检查胎压、机油、刹车、备胎和基础工具。" },
     骑行: { icon: "clock", title: "可见度", text: "黄昏、夜间和隧道骑行要提前打开车灯，并穿高可见度衣物。" },
     海边旅行: { icon: "weather", title: "紫外线与潮汐", text: "关注潮汐、离岸流和紫外线强度，避免正午长时间暴晒。" },
+    越野跑: { icon: "clock", title: "配速与撤退", text: "越野跑要控制下坡速度，提前确认补水点、折返点和最晚返程时间。" },
+    重装徒步: { icon: "pack", title: "负重管理", text: "重装行程要限制非必要物品，优先保证背负、鞋靴和睡眠系统可靠。" },
+    攀岩: { icon: "shield", title: "坠落与落石", text: "攀岩前确认头盔、保护系统和下降方案，避开松动岩面和雷雨窗口。" },
+    皮划艇: { icon: "weather", title: "水面变化", text: "关注风浪、水温和回岸路线，救生衣和防水收纳必须优先准备。" },
+    单板滑雪: { icon: "shield", title: "摔倒防护", text: "单板滑雪摔倒频率高，头盔、雪镜、护具和热身要放在前面。" },
+    沙漠徒步: { icon: "weather", title: "高温与迷航", text: "沙漠徒步要避开正午高温，携带冗余饮水并提前标记撤离点。" },
+    冬季露营: { icon: "clock", title: "失温风险", text: "冬季露营要控制暴露时间，睡眠系统、干燥衣物和热饮能力决定安全边界。" },
+    海边露营: { icon: "weather", title: "潮汐与强风", text: "海边露营要避开潮水线，帐篷固定、防水收纳和防晒都需要提前检查。" },
   };
 
   const weatherRisk: Record<Weather, RiskBlock> = {
@@ -945,6 +1026,38 @@ function getActivityGearAdvice(activity: Activity, weather: Weather, tripDays: T
     return "海边出行要把防晒、防水收纳和速干装备放在前面，避免阳光和潮气影响整天节奏。";
   }
 
+  if (activity === "越野跑") {
+    return "越野跑优先保证跑鞋抓地、补水背心和照明冗余，轻量化要建立在不牺牲撤退能力的基础上。";
+  }
+
+  if (activity === "重装徒步") {
+    return "重装徒步的预算应先放在背包、鞋靴、帐篷和睡眠系统上，减重和舒适度会直接影响后几天状态。";
+  }
+
+  if (activity === "攀岩") {
+    return "攀岩装备先覆盖鞋、头盔、照明和基础急救，保护与撤退能力比舒适配件更关键。";
+  }
+
+  if (activity === "皮划艇") {
+    return "皮划艇要把救生衣、防水收纳、遮阳和补水前置，水面风浪变化会放大小失误。";
+  }
+
+  if (activity === "单板滑雪") {
+    return "单板滑雪优先保证雪板、固定器、雪鞋和头盔雪镜的匹配度，控制感比堆配件更重要。";
+  }
+
+  if (activity === "沙漠徒步") {
+    return "沙漠徒步的核心是防晒、补水和路线冗余，鞋和背包要兼顾透气与承载。";
+  }
+
+  if (activity === "冬季露营") {
+    return "冬季露营先把帐篷、睡袋、防潮垫和炉具作为系统规划，夜间保暖比单件装备参数更重要。";
+  }
+
+  if (activity === "海边露营") {
+    return "海边露营要兼顾通风、防风、防水和食物冷藏，沙地固定和潮汐位置比普通营地更关键。";
+  }
+
   return `${lengthTone}${activity}建议先锁定鞋服、收纳和照明等高频装备，再按预算补足舒适项。`;
 }
 
@@ -1011,6 +1124,22 @@ function getSafetyAdvice(activity: Activity, weather: Weather, tripDays: TripDay
 
   if (activity === "骑行") {
     return "骑行前检查刹车、胎压和车灯，夜间或隧道场景下可见度比速度更重要。";
+  }
+
+  if (activity === "攀岩") {
+    return "攀岩前要完成同伴互检，确认头盔、保护点和下降路线，天气转差时不要硬上长线路线。";
+  }
+
+  if (activity === "皮划艇") {
+    return "皮划艇出发前确认回岸点、水温、风向和救生衣穿戴，手机与保暖层要进入防水袋。";
+  }
+
+  if (activity === "沙漠徒步") {
+    return "沙漠徒步建议错开正午高温，饮水按冗余准备，并把路线与预计返回时间同步给同行者。";
+  }
+
+  if (activity === "冬季露营") {
+    return "冬季露营要保持睡眠系统干燥，睡前补充热量，低温或强风加剧时优先缩短暴露时间。";
   }
 
   return "出发前把路线、天气窗口和返程时间同步给同行者，装备清单之外也要留出撤退预案。";

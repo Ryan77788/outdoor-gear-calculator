@@ -1,9 +1,26 @@
-export type Activity = "登山" | "徒步" | "露营" | "滑雪" | "钓鱼" | "自驾游" | "骑行" | "海边旅行";
+export type Activity =
+  | "登山"
+  | "徒步"
+  | "露营"
+  | "滑雪"
+  | "钓鱼"
+  | "自驾游"
+  | "骑行"
+  | "海边旅行"
+  | "越野跑"
+  | "重装徒步"
+  | "攀岩"
+  | "皮划艇"
+  | "单板滑雪"
+  | "沙漠徒步"
+  | "冬季露营"
+  | "海边露营";
 export type ProductWeather = "晴天" | "雨天" | "寒冷" | "炎热" | "通用";
 export type ProductLevel = "basic" | "standard" | "premium";
 export type ProductPriority = "core" | "important" | "optional";
 export type GearType = "perPerson" | "shared" | "consumable";
 export type BudgetWeight = "high" | "medium" | "low";
+export type ImageStatus = "matched" | "placeholder" | "needsReview";
 export type GearCategory =
   | "shoes"
   | "shellJacket"
@@ -63,6 +80,7 @@ export type ProductTemplate = {
   price: number;
   unit: string;
   image: string;
+  imageStatus: ImageStatus;
   buyUrl: string;
   reason: string;
   reasonEn?: string;
@@ -76,28 +94,67 @@ export type Product = ProductTemplate & {
   subtotal: number;
 };
 
-export const activityOptions: Activity[] = ["登山", "徒步", "露营", "滑雪", "钓鱼", "自驾游", "骑行", "海边旅行"];
+export const activityOptions: Activity[] = [
+  "登山",
+  "徒步",
+  "露营",
+  "滑雪",
+  "钓鱼",
+  "自驾游",
+  "骑行",
+  "海边旅行",
+  "越野跑",
+  "重装徒步",
+  "攀岩",
+  "皮划艇",
+  "单板滑雪",
+  "沙漠徒步",
+  "冬季露营",
+  "海边露营",
+];
 
-export const productUrl = "https://example.com";
+export const productUrl = "https://www.amazon.com/s?k=outdoor+gear";
 
 const imageByCategory: Partial<Record<GearCategory, string>> = {
-  tent: "/products/tent.jpg",
-  skiBoard: "/products/ski-board.jpg",
-  skiBinding: "/products/ski-board.jpg",
-  skiBoots: "/products/ski-board.jpg",
-  skiSuit: "/products/ski-board.jpg",
-  goggles: "/products/ski-board.jpg",
-  shoes: "/products/hiking-shoes.jpg",
-  shellJacket: "/products/jacket.jpg",
-  raincoat: "/products/jacket.jpg",
-  insulation: "/products/jacket.jpg",
-  baseLayer: "/products/jacket.jpg",
-  headlamp: "/products/headlamp.jpg",
-  lighting: "/products/headlamp.jpg",
-  fishingRod: "/products/fishing-rod.jpg",
-  fishingLine: "/products/fishing-rod.jpg",
-  chair: "/products/camping-chair.jpg",
-  tableChair: "/products/camping-chair.jpg",
+  backpack: "/products/placeholder-backpack.jpg",
+  beachMat: "/products/placeholder-beach.jpg",
+  chair: "/products/placeholder-camping.jpg",
+  cooler: "/products/placeholder-camping.jpg",
+  dryBag: "/products/placeholder-beach.jpg",
+  electrolyte: "/products/placeholder-beach.jpg",
+  fishingLine: "/products/placeholder-fishing.jpg",
+  fishingRod: "/products/placeholder-fishing.jpg",
+  food: "/products/placeholder-backpack.jpg",
+  gloves: "/products/placeholder-ski.jpg",
+  goggles: "/products/placeholder-ski.jpg",
+  headlamp: "/products/placeholder-camping.jpg",
+  helmet: "/products/placeholder-cycling.jpg",
+  insulation: "/products/placeholder-jacket.jpg",
+  lighting: "/products/placeholder-camping.jpg",
+  mat: "/products/placeholder-camping.jpg",
+  pole: "/products/placeholder-backpack.jpg",
+  power: "/products/placeholder-camping.jpg",
+  raincoat: "/products/placeholder-jacket.jpg",
+  repair: "/products/placeholder-cycling.jpg",
+  shellJacket: "/products/placeholder-jacket.jpg",
+  shoes: "/products/placeholder-shoes.jpg",
+  skiBinding: "/products/placeholder-ski.jpg",
+  skiBoard: "/products/placeholder-ski.jpg",
+  skiBoots: "/products/placeholder-ski.jpg",
+  skiSuit: "/products/placeholder-ski.jpg",
+  sleepingBag: "/products/placeholder-camping.jpg",
+  stove: "/products/placeholder-camping.jpg",
+  sunHat: "/products/placeholder-beach.jpg",
+  sunglasses: "/products/placeholder-beach.jpg",
+  sunscreen: "/products/placeholder-beach.jpg",
+  tableChair: "/products/placeholder-camping.jpg",
+  tent: "/products/placeholder-tent.jpg",
+  towel: "/products/placeholder-beach.jpg",
+  vehicleTool: "/products/placeholder-camping.jpg",
+  warmPatch: "/products/placeholder-ski.jpg",
+  water: "/products/placeholder-backpack.jpg",
+  baseLayer: "/products/placeholder-jacket.jpg",
+  consumable: "/products/placeholder-camping.jpg",
 };
 
 export const categoryEnByGearCategory: Record<GearCategory, string> = {
@@ -186,14 +243,101 @@ const categoryZhByGearCategory: Record<GearCategory, string> = {
   consumable: "消耗品",
 };
 
-type ProductInput = Omit<ProductTemplate, "buyUrl" | "image" | "category" | "categoryEn"> & {
+type ProductInput = Omit<ProductTemplate, "buyUrl" | "image" | "imageStatus" | "category" | "categoryEn"> & {
   category?: string;
   categoryEn?: string;
   image?: string;
+  imageStatus?: ImageStatus;
 };
 
-function makeBuyUrl(id: string, brand: string, nameEn: string) {
-  return `https://www.amazon.com/s?k=${encodeURIComponent(`${brand} ${nameEn}`)}&outdoorId=${encodeURIComponent(id)}`;
+type CommercePlatform = "amazon" | "backcountry" | "evo" | "basspro" | "decathlon";
+
+function searchUrl(platform: CommercePlatform, query: string) {
+  const encodedQuery = encodeURIComponent(query);
+
+  switch (platform) {
+    case "backcountry":
+      return `https://www.backcountry.com/search?q=${encodedQuery}`;
+    case "evo":
+      return `https://www.evo.com/shop?text=${encodedQuery}`;
+    case "basspro":
+      return `https://www.basspro.com/shop/en/search?searchTerm=${encodedQuery}`;
+    case "decathlon":
+      return `https://www.decathlon.com/search?query=${encodedQuery}`;
+    case "amazon":
+    default:
+      return `https://www.amazon.com/s?k=${encodedQuery}`;
+  }
+}
+
+function getCommercePlatform(product: ProductInput): CommercePlatform {
+  const brand = product.brand.toLowerCase();
+
+  if (brand.includes("decathlon") || brand.includes("naturehike")) {
+    return "decathlon";
+  }
+
+  if (brand.includes("backcountry")) {
+    return "backcountry";
+  }
+
+  if (product.activity.includes("钓鱼") || product.gearCategory === "fishingRod" || product.gearCategory === "fishingLine") {
+    return ["daiwa", "shimano", "berkley", "yeti"].some((fishingBrand) => brand.includes(fishingBrand))
+      ? "basspro"
+      : "amazon";
+  }
+
+  if (
+    product.activity.includes("滑雪") ||
+    product.activity.includes("单板滑雪") ||
+    ["skiBoard", "skiBinding", "skiBoots", "skiSuit", "goggles"].includes(product.gearCategory)
+  ) {
+    if (["burton", "union", "smith", "salomon", "giro", "hestra"].some((skiBrand) => brand.includes(skiBrand))) {
+      return "evo";
+    }
+
+    return "amazon";
+  }
+
+  if (
+    product.activity.includes("登山") ||
+    product.activity.includes("徒步") ||
+    product.activity.includes("越野跑") ||
+    product.activity.includes("重装徒步") ||
+    product.activity.includes("攀岩") ||
+    product.activity.includes("沙漠徒步") ||
+    ["shoes", "shellJacket", "raincoat", "insulation", "backpack", "pole", "headlamp", "baseLayer"].includes(
+      product.gearCategory,
+    )
+  ) {
+    if (["arc'teryx", "patagonia", "la sportiva"].some((outdoorBrand) => brand.includes(outdoorBrand))) {
+      return "backcountry";
+    }
+
+    return "amazon";
+  }
+
+  if (
+    product.activity.includes("露营") ||
+    product.activity.includes("冬季露营") ||
+    product.activity.includes("海边露营") ||
+    product.activity.includes("皮划艇") ||
+    ["tent", "sleepingBag", "mat", "stove", "lighting", "chair", "tableChair"].includes(product.gearCategory)
+  ) {
+    if (["msr", "sea to summit", "helinox"].some((campingBrand) => brand.includes(campingBrand))) {
+      return "backcountry";
+    }
+
+    return "amazon";
+  }
+
+  return "amazon";
+}
+
+function makeBuyUrl(product: ProductInput) {
+  const query = `${product.brand} ${product.nameEn ?? product.name}`;
+
+  return searchUrl(getCommercePlatform(product), query);
 }
 
 function p(product: ProductInput): ProductTemplate {
@@ -201,8 +345,9 @@ function p(product: ProductInput): ProductTemplate {
     ...product,
     category: product.category ?? categoryZhByGearCategory[product.gearCategory],
     categoryEn: product.categoryEn ?? categoryEnByGearCategory[product.gearCategory],
-    image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/jacket.jpg",
-    buyUrl: makeBuyUrl(product.id, product.brand, product.nameEn ?? product.name),
+    image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
+    imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
+    buyUrl: makeBuyUrl(product),
   };
 }
 
@@ -282,5 +427,56 @@ export const productCatalog: Record<Activity, ProductTemplate[]> = {
     p({ id: "beach-naturehike-towel", name: "Naturehike 速干毛巾", nameEn: "Naturehike quick-dry towel", brand: "Naturehike", gearCategory: "towel", activity: ["海边旅行"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "low", price: 79, unit: "条", reason: "涉水或游泳后快速擦干，便于重复使用。", reasonEn: "Dries quickly after swimming or rain and packs smaller than cotton towels." }),
     p({ id: "beach-oakley-holbrook", name: "Oakley Holbrook 偏光太阳镜", nameEn: "Oakley Holbrook polarized sunglasses", brand: "Oakley", gearCategory: "sunglasses", activity: ["海边旅行"], weather: ["晴天"], level: "standard", priority: "optional", gearType: "perPerson", budgetWeight: "low", price: 999, unit: "副", reason: "减少水面眩光，保护眼睛但不应挤占基础防晒预算。", reasonEn: "Cuts water glare and protects eyes, but should not replace core sun protection." }),
     p({ id: "beach-nuun-electrolyte", name: "Nuun 电解质片", nameEn: "Nuun electrolyte tablets", brand: "Nuun", gearCategory: "electrolyte", activity: ["海边旅行"], weather: ["炎热"], level: "basic", priority: "important", gearType: "consumable", budgetWeight: "low", price: 8, unit: "片", reason: "高温出汗后补充电解质，帮助维持状态。", reasonEn: "Helps replace salts after sweating in hot beach conditions." }),
+  ],
+  越野跑: [
+    p({ id: "trailrun-salomon-speedcross", name: "Salomon Speedcross 越野跑鞋", nameEn: "Salomon Speedcross trail running shoes", brand: "Salomon", gearCategory: "shoes", activity: ["越野跑"], weather: ["雨天", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 1099, unit: "双", reason: "深齿外底适合泥地、碎石和林道快速移动。", reasonEn: "Aggressive traction for mud, loose gravel, and fast forest trails." }),
+    p({ id: "trailrun-salomon-vest", name: "Salomon ADV Skin 跑步背心", nameEn: "Salomon ADV Skin running vest", brand: "Salomon", gearCategory: "backpack", activity: ["越野跑"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 999, unit: "个", reason: "贴身携带水、能量胶、薄外套和急救小件。", reasonEn: "Carries water, fuel, a light shell, and small emergency items without bouncing." }),
+    p({ id: "trailrun-petzl-bindi", name: "Petzl Bindi 轻量头灯", nameEn: "Petzl Bindi headlamp", brand: "Petzl", gearCategory: "headlamp", activity: ["越野跑"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 399, unit: "个", reason: "清晨、傍晚和林道阴影中保持可见度。", reasonEn: "Keeps visibility in early starts, dusk finishes, and shaded trails." }),
+    p({ id: "trailrun-nuun-tabs", name: "Nuun 越野电解质片", nameEn: "Nuun trail electrolytes", brand: "Nuun", gearCategory: "electrolyte", activity: ["越野跑"], weather: ["炎热"], level: "basic", priority: "important", gearType: "consumable", budgetWeight: "low", price: 8, unit: "片", reason: "高强度出汗时补充盐分，降低抽筋和后程掉速。", reasonEn: "Replaces salts during hard efforts to reduce cramps and late-run fade." }),
+  ],
+  重装徒步: [
+    p({ id: "backpacking-osprey-atmos", name: "Osprey Atmos 65 重装背包", nameEn: "Osprey Atmos 65 backpack", brand: "Osprey", gearCategory: "backpack", activity: ["重装徒步"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 2199, unit: "个", reason: "65L 容量和背负系统适合多日负重。", reasonEn: "A 65L load-hauling pack for multi-day backpacking." }),
+    p({ id: "backpacking-salomon-quest", name: "Salomon Quest 4 重装徒步鞋", nameEn: "Salomon Quest 4 backpacking boots", brand: "Salomon", gearCategory: "shoes", activity: ["重装徒步"], weather: ["雨天", "寒冷", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 1399, unit: "双", reason: "负重时需要更强脚踝支撑和抓地。", reasonEn: "Supportive boots add ankle stability and grip under load." }),
+    p({ id: "backpacking-msr-tent", name: "MSR Hubba Hubba 轻量帐篷", nameEn: "MSR Hubba Hubba backpacking tent", brand: "MSR", gearCategory: "tent", activity: ["重装徒步"], weather: ["雨天", "通用"], level: "premium", priority: "core", gearType: "shared", budgetWeight: "high", price: 3999, unit: "顶", reason: "多日徒步需要可靠庇护和合理重量。", reasonEn: "Reliable shelter with backpacking-friendly weight for multi-day routes." }),
+    p({ id: "backpacking-sea-summit-spark", name: "Sea to Summit Spark 睡袋", nameEn: "Sea to Summit Spark sleeping bag", brand: "Sea to Summit", gearCategory: "sleepingBag", activity: ["重装徒步"], weather: ["寒冷", "通用"], level: "premium", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 2299, unit: "个", reason: "压缩体积和保暖效率影响每日恢复。", reasonEn: "Warmth-to-weight and packability shape recovery on the trail." }),
+    p({ id: "backpacking-thermarest-neoair", name: "Therm-a-Rest NeoAir 睡垫", nameEn: "Therm-a-Rest NeoAir sleeping pad", brand: "Therm-a-Rest", gearCategory: "mat", activity: ["重装徒步"], weather: ["寒冷", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 1299, unit: "张", reason: "隔绝地面冷气，提升睡眠恢复质量。", reasonEn: "Ground insulation improves sleep and recovery." }),
+  ],
+  攀岩: [
+    p({ id: "climbing-la-sportiva-tarantulace", name: "La Sportiva Tarantulace 攀岩鞋", nameEn: "La Sportiva Tarantulace climbing shoes", brand: "La Sportiva", gearCategory: "shoes", activity: ["攀岩"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 899, unit: "双", reason: "贴合的攀岩鞋直接影响踩点和发力。", reasonEn: "Climbing shoes directly affect edging, grip, and footwork." }),
+    p({ id: "climbing-black-diamond-helmet", name: "Black Diamond Half Dome 头盔", nameEn: "Black Diamond Half Dome climbing helmet", brand: "Black Diamond", gearCategory: "helmet", activity: ["攀岩"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 499, unit: "个", reason: "防护落石、磕碰和保护站意外。", reasonEn: "Protects from rockfall, bumps, and belay-area accidents." }),
+    p({ id: "climbing-petzl-headlamp", name: "Petzl Actik 攀岩头灯", nameEn: "Petzl Actik climbing headlamp", brand: "Petzl", gearCategory: "headlamp", activity: ["攀岩"], weather: ["通用"], level: "standard", priority: "important", gearType: "perPerson", budgetWeight: "medium", price: 599, unit: "个", reason: "长路线、下降或晚归需要可靠照明。", reasonEn: "Useful for long routes, descents, and late returns." }),
+    p({ id: "climbing-metolius-gloves", name: "Metolius 保护手套", nameEn: "Metolius belay gloves", brand: "Metolius", gearCategory: "gloves", activity: ["攀岩"], weather: ["通用"], level: "basic", priority: "important", gearType: "perPerson", budgetWeight: "low", price: 249, unit: "双", reason: "保护放绳和下降时的手部。", reasonEn: "Protects hands while belaying and rappelling." }),
+  ],
+  皮划艇: [
+    p({ id: "kayak-nrs-pfd", name: "NRS 皮划艇救生衣", nameEn: "NRS kayak PFD", brand: "NRS", gearCategory: "helmet", activity: ["皮划艇"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 899, unit: "件", reason: "水上活动必须优先保证浮力防护。", reasonEn: "A PFD is the first safety layer for paddling." }),
+    p({ id: "kayak-sea-summit-drybag", name: "Sea to Summit 防水袋", nameEn: "Sea to Summit dry bag", brand: "Sea to Summit", gearCategory: "dryBag", activity: ["皮划艇"], weather: ["雨天", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 169, unit: "个", reason: "保护手机、衣物和补给不被打湿。", reasonEn: "Keeps phone, clothing, and supplies dry." }),
+    p({ id: "kayak-columbia-sun-hat", name: "Columbia 水上遮阳帽", nameEn: "Columbia paddling sun hat", brand: "Columbia", gearCategory: "sunHat", activity: ["皮划艇"], weather: ["晴天", "炎热"], level: "standard", priority: "important", gearType: "perPerson", budgetWeight: "low", price: 249, unit: "顶", reason: "水面反光会增加头面部暴晒。", reasonEn: "Water glare increases sun exposure on the face and neck." }),
+    p({ id: "kayak-oakley-sunglasses", name: "Oakley 偏光太阳镜", nameEn: "Oakley polarized sunglasses", brand: "Oakley", gearCategory: "sunglasses", activity: ["皮划艇"], weather: ["晴天"], level: "standard", priority: "important", gearType: "perPerson", budgetWeight: "low", price: 999, unit: "副", reason: "减少水面眩光，帮助观察水流和障碍。", reasonEn: "Cuts glare and helps read water and obstacles." }),
+  ],
+  单板滑雪: [
+    p({ id: "snowboard-burton-custom", name: "Burton Custom 单板", nameEn: "Burton Custom snowboard", brand: "Burton", gearCategory: "skiBoard", activity: ["单板滑雪"], weather: ["寒冷", "通用"], level: "premium", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 5299, unit: "副", reason: "响应和稳定性适合进阶单板滑雪。", reasonEn: "A responsive, stable snowboard for progressing riders." }),
+    p({ id: "snowboard-union-force", name: "Union Force 固定器", nameEn: "Union Force snowboard bindings", brand: "Union", gearCategory: "skiBinding", activity: ["单板滑雪"], weather: ["寒冷", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 1799, unit: "副", reason: "固定器影响控板、传力和舒适度。", reasonEn: "Bindings shape board control, power transfer, and comfort." }),
+    p({ id: "snowboard-salomon-dialogue", name: "Salomon Dialogue 单板雪靴", nameEn: "Salomon Dialogue snowboard boots", brand: "Salomon", gearCategory: "skiBoots", activity: ["单板滑雪"], weather: ["寒冷"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 1899, unit: "双", reason: "雪靴贴合度决定脚感和控板。", reasonEn: "Boot fit shapes comfort, support, and board control." }),
+    p({ id: "snowboard-giro-ledges", name: "Giro Ledge 单板头盔", nameEn: "Giro Ledge snowboard helmet", brand: "Giro", gearCategory: "helmet", activity: ["单板滑雪"], weather: ["通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 699, unit: "个", reason: "摔倒和碰撞风险下头盔不可省。", reasonEn: "A helmet is essential for falls and collisions." }),
+    p({ id: "snowboard-smith-goggles", name: "Smith I/O MAG 雪镜", nameEn: "Smith I/O MAG snowboard goggles", brand: "Smith", gearCategory: "goggles", activity: ["单板滑雪"], weather: ["晴天", "寒冷"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 1399, unit: "副", reason: "提升雪面判断并减少风雪刺激。", reasonEn: "Improves terrain read and protects eyes from wind and snow." }),
+  ],
+  沙漠徒步: [
+    p({ id: "desert-merrell-moab", name: "Merrell Moab 透气徒步鞋", nameEn: "Merrell Moab breathable hiking shoes", brand: "Merrell", gearCategory: "shoes", activity: ["沙漠徒步"], weather: ["炎热", "晴天"], level: "basic", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 699, unit: "双", reason: "高温砂石环境需要透气、耐磨和稳定支撑。", reasonEn: "Hot sandy terrain needs breathable, durable support." }),
+    p({ id: "desert-osprey-hikelite", name: "Osprey Hikelite 透气背包", nameEn: "Osprey Hikelite desert daypack", brand: "Osprey", gearCategory: "backpack", activity: ["沙漠徒步"], weather: ["炎热"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 799, unit: "个", reason: "携带大量饮水、防晒和应急用品。", reasonEn: "Carries extra water, sun protection, and emergency supplies." }),
+    p({ id: "desert-columbia-sunhat", name: "Columbia 沙漠遮阳帽", nameEn: "Columbia desert sun hat", brand: "Columbia", gearCategory: "sunHat", activity: ["沙漠徒步"], weather: ["晴天", "炎热"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "low", price: 249, unit: "顶", reason: "降低头面部暴晒和中暑风险。", reasonEn: "Reduces sun exposure and heat stress." }),
+    p({ id: "desert-camelbak-reservoir", name: "CamelBak 3L 水袋", nameEn: "CamelBak 3L hydration reservoir", brand: "CamelBak", gearCategory: "water", activity: ["沙漠徒步"], weather: ["炎热"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "medium", price: 399, unit: "个", reason: "沙漠路线补水容量要比普通徒步更充足。", reasonEn: "Desert routes require more hydration capacity than normal hikes." }),
+  ],
+  冬季露营: [
+    p({ id: "winter-msr-access", name: "MSR Access 冬季帐篷", nameEn: "MSR Access winter tent", brand: "MSR", gearCategory: "tent", activity: ["冬季露营"], weather: ["寒冷", "通用"], level: "premium", priority: "core", gearType: "shared", budgetWeight: "high", price: 4999, unit: "顶", reason: "冬季营地需要更强抗风、抗雪和结构稳定性。", reasonEn: "Winter camps need stronger wind, snow, and structure performance." }),
+    p({ id: "winter-sea-summit-spark", name: "Sea to Summit 冬季睡袋", nameEn: "Sea to Summit winter sleeping bag", brand: "Sea to Summit", gearCategory: "sleepingBag", activity: ["冬季露营"], weather: ["寒冷"], level: "premium", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 2999, unit: "个", reason: "夜间低温下睡袋温标是安全核心。", reasonEn: "Sleep-system warmth rating is central to winter safety." }),
+    p({ id: "winter-thermarest-xtherm", name: "Therm-a-Rest XTherm 睡垫", nameEn: "Therm-a-Rest XTherm sleeping pad", brand: "Therm-a-Rest", gearCategory: "mat", activity: ["冬季露营"], weather: ["寒冷"], level: "premium", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 1699, unit: "张", reason: "高 R 值睡垫能阻断地面冷量。", reasonEn: "A high R-value pad blocks ground cold." }),
+    p({ id: "winter-jetboil-stove", name: "Jetboil Flash 冬季炉具", nameEn: "Jetboil Flash winter stove", brand: "Jetboil", gearCategory: "stove", activity: ["冬季露营"], weather: ["寒冷"], level: "premium", priority: "core", gearType: "shared", budgetWeight: "high", price: 999, unit: "套", reason: "冷天热饮、融雪和热食依赖稳定炉具。", reasonEn: "Hot drinks, snow melting, and meals depend on a reliable stove." }),
+  ],
+  海边露营: [
+    p({ id: "beachcamp-coleman-tent", name: "Coleman 海边露营帐篷", nameEn: "Coleman beach camping tent", brand: "Coleman", gearCategory: "tent", activity: ["海边露营"], weather: ["晴天", "通用"], level: "basic", priority: "core", gearType: "shared", budgetWeight: "high", price: 699, unit: "顶", reason: "提供遮蔽、隐私和基础防风空间。", reasonEn: "Provides shelter, privacy, and basic wind protection." }),
+    p({ id: "beachcamp-sea-summit-drybag", name: "Sea to Summit 大号防水袋", nameEn: "Sea to Summit large dry bag", brand: "Sea to Summit", gearCategory: "dryBag", activity: ["海边露营"], weather: ["雨天", "通用"], level: "standard", priority: "core", gearType: "shared", budgetWeight: "medium", price: 229, unit: "个", reason: "海边潮气和沙子会影响衣物、电子设备和睡眠装备。", reasonEn: "Moisture and sand can damage clothing, electronics, and sleep gear." }),
+    p({ id: "beachcamp-columbia-sunhat", name: "Columbia 海边遮阳帽", nameEn: "Columbia beach sun hat", brand: "Columbia", gearCategory: "sunHat", activity: ["海边露营"], weather: ["晴天", "炎热"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "low", price: 249, unit: "顶", reason: "长时间海边活动需要稳定遮阳。", reasonEn: "Long beach days need reliable shade for the head and neck." }),
+    p({ id: "beachcamp-yeti-cooler", name: "YETI Roadie 海边冷藏箱", nameEn: "YETI Roadie beach cooler", brand: "YETI", gearCategory: "cooler", activity: ["海边露营"], weather: ["炎热", "通用"], level: "premium", priority: "core", gearType: "shared", budgetWeight: "medium", price: 2499, unit: "个", reason: "高温下稳定保存饮品和食物。", reasonEn: "Keeps drinks and food stable in beach heat." }),
+    p({ id: "beachcamp-naturehike-towel", name: "Naturehike 速干毛巾", nameEn: "Naturehike quick-dry towel", brand: "Naturehike", gearCategory: "towel", activity: ["海边露营"], weather: ["通用"], level: "standard", priority: "important", gearType: "perPerson", budgetWeight: "low", price: 79, unit: "条", reason: "涉水后快速恢复干爽，减少夜间潮湿感。", reasonEn: "Dries quickly after swimming and reduces dampness at camp." }),
   ],
 };

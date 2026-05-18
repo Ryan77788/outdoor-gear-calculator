@@ -38,6 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
+import { getActivityHeroImage } from "@/lib/activity-backgrounds";
 
 type IconName = RiskIconName;
 
@@ -147,14 +148,6 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
   );
 }
 
-const shareBackgroundByActivity: Partial<Record<Activity, string>> = {
-  登山: "/share-hiking.jpg",
-  徒步: "/share-hiking.jpg",
-  露营: "/share-camping.jpg",
-  滑雪: "/share-skiing.jpg",
-  钓鱼: "/fishing-hero.jpg",
-};
-
 const shareCoreCategories = new Set<GearCategory>([
   "shoes",
   "shellJacket",
@@ -210,7 +203,7 @@ const shareLowSignalCategories = new Set<GearCategory>([
 ]);
 
 function getShareBackground(activity: Activity) {
-  return shareBackgroundByActivity[activity] ?? "/share-hiking.jpg";
+  return getActivityHeroImage(activity);
 }
 
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
@@ -1051,6 +1044,11 @@ export default function Home() {
                         sizes="80px"
                         src={product.image}
                       />
+                      {product.imageStatus !== "matched" && (
+                        <span className="absolute bottom-1 left-1 right-1 rounded-md bg-slate-950/78 px-1.5 py-1 text-center text-[10px] font-black text-white">
+                          {language === "zh" ? "图片待确认" : "Image pending"}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
@@ -1091,6 +1089,11 @@ export default function Home() {
 
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-500">
                     {localizeProductReason(product, language)}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-slate-400">
+                    {language === "zh"
+                      ? "当前为搜索链接，具体商品以后人工确认。"
+                      : "Search result link, exact product may vary."}
                   </p>
 
                   <button
