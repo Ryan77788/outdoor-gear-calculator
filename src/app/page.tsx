@@ -18,6 +18,7 @@ import {
   type TripDays,
   type Weather,
 } from "@/lib/recommendation";
+import { buildRecommendationAnalysis } from "@/lib/reasoning";
 import {
   formatCurrency as formatLocalizedCurrency,
   formatQuantity,
@@ -350,6 +351,17 @@ export default function Home() {
         budget: form.budget,
       }),
     [insightReport, language, form.activity, form.weather, form.tripDays, form.peopleCount, form.budget],
+  );
+  const recommendationAnalysis = useMemo(
+    () =>
+      buildRecommendationAnalysis({
+        activity: form.activity,
+        weather: form.weather,
+        tripDays: form.tripDays,
+        peopleCount: form.peopleCount,
+        language,
+      }),
+    [form.activity, form.weather, form.tripDays, form.peopleCount, language],
   );
   const t = translations[language];
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
@@ -827,6 +839,56 @@ export default function Home() {
                     <h3 className="font-black text-slate-950">{insight.title}</h3>
                   </div>
                   <p className="text-sm leading-6 text-slate-600">{insight.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-6 pt-6">
+          <div className="overflow-hidden rounded-2xl border border-white/70 bg-slate-950/88 p-5 text-white shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-200/10 backdrop-blur-2xl">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-lime-200">AI Recommendation Analysis</p>
+                <h2 className="mt-1 text-2xl font-black">
+                  {language === "zh" ? "为什么推荐这些装备" : "Why these gear choices make sense"}
+                </h2>
+              </div>
+              <span className="rounded-full border border-amber-200/40 bg-amber-300/16 px-4 py-2 text-sm font-black text-amber-100">
+                {language === "zh" ? "风险高亮" : "Risk-aware reasoning"}
+              </span>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {recommendationAnalysis.map((item) => (
+                <article
+                  className={`rounded-xl border p-4 shadow-sm backdrop-blur ${
+                    item.tone === "high"
+                      ? "border-amber-300/45 bg-amber-300/12"
+                      : item.tone === "elevated"
+                        ? "border-lime-200/35 bg-lime-200/10"
+                        : "border-white/18 bg-white/10"
+                  }`}
+                  key={item.title}
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                        item.tone === "high" ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" name={item.icon} />
+                    </span>
+                    <h3 className="font-black text-white">{item.title}</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {item.bullets.map((bullet) => (
+                      <li className="flex gap-2 text-sm leading-6 text-white/78" key={bullet}>
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-200" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </article>
               ))}
             </div>

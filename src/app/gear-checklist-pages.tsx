@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { Activity } from "@/data/products";
+import type { TripDays, Weather } from "@/lib/recommendation";
+import { buildRecommendationAnalysis } from "@/lib/reasoning";
 
 type GearChecklistPage = {
   slug: string;
@@ -13,6 +16,12 @@ type GearChecklistPage = {
   gear: string[];
   risks: string[];
   image: string;
+  analysisContext: {
+    activity: Activity;
+    weather: Weather;
+    tripDays: TripDays;
+    peopleCount: number;
+  };
 };
 
 export const gearChecklistPages = {
@@ -53,6 +62,7 @@ export const gearChecklistPages = {
       "Dehydration, blisters, and late starts can turn an easy route into a long exit.",
     ],
     image: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "徒步", weather: "雨天", tripDays: "2-3天", peopleCount: 2 },
   },
   camping: {
     slug: "camping-gear-checklist",
@@ -91,6 +101,7 @@ export const gearChecklistPages = {
       "Wind and rain expose weak tent staking, especially on open sites.",
     ],
     image: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "露营", weather: "寒冷", tripDays: "2-3天", peopleCount: 3 },
   },
   skiing: {
     slug: "skiing-gear-checklist",
@@ -129,6 +140,7 @@ export const gearChecklistPages = {
       "Altitude, sun reflection, and dehydration can build fatigue quickly.",
     ],
     image: "https://images.unsplash.com/photo-1551524559-8af4e6624178?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "滑雪", weather: "寒冷", tripDays: "1天", peopleCount: 2 },
   },
   fishing: {
     slug: "fishing-gear-checklist",
@@ -167,6 +179,7 @@ export const gearChecklistPages = {
       "Sun, wind, and insects can become the main comfort problem on long sessions.",
     ],
     image: "/fishing-hero.jpg",
+    analysisContext: { activity: "钓鱼", weather: "雨天", tripDays: "1天", peopleCount: 2 },
   },
   roadTrip: {
     slug: "road-trip-gear-checklist",
@@ -205,6 +218,7 @@ export const gearChecklistPages = {
       "Weather and road closures can change the route plan with little notice.",
     ],
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "自驾游", weather: "晴天", tripDays: "4天以上", peopleCount: 4 },
   },
   cycling: {
     slug: "cycling-gear-checklist",
@@ -243,6 +257,7 @@ export const gearChecklistPages = {
       "Under-fueling can cause sharp fatigue on longer or hillier routes.",
     ],
     image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "骑行", weather: "炎热", tripDays: "1天", peopleCount: 2 },
   },
   beachTravel: {
     slug: "beach-travel-gear-checklist",
@@ -281,6 +296,7 @@ export const gearChecklistPages = {
       "Heat, dehydration, and lost small items are the most common beach-day problems.",
     ],
     image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=85",
+    analysisContext: { activity: "海边旅行", weather: "炎热", tripDays: "2-3天", peopleCount: 3 },
   },
 } satisfies Record<string, GearChecklistPage>;
 
@@ -309,6 +325,8 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
 }
 
 export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
+  const analysis = buildRecommendationAnalysis({ ...page.analysisContext, language: "en" });
+
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
       <section className="relative isolate overflow-hidden">
@@ -382,6 +400,54 @@ export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
               <p key={risk} className="rounded-xl border border-amber-200 bg-white/75 p-4 text-sm leading-6 text-slate-700">
                 {risk}
               </p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-14">
+        <div className="overflow-hidden rounded-2xl border border-white/20 bg-slate-950 p-6 text-white shadow-lg shadow-emerald-950/10">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-lime-200">AI Recommendation Analysis</p>
+              <h2 className="mt-3 text-2xl font-black">Why these gear priorities matter</h2>
+            </div>
+            <span className="rounded-full border border-amber-200/40 bg-amber-300/16 px-4 py-2 text-sm font-black text-amber-100">
+              Risk-aware reasoning
+            </span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {analysis.map((item) => (
+              <article
+                className={`rounded-xl border p-4 ${
+                  item.tone === "high"
+                    ? "border-amber-300/45 bg-amber-300/12"
+                    : item.tone === "elevated"
+                      ? "border-lime-200/35 bg-lime-200/10"
+                      : "border-white/18 bg-white/10"
+                }`}
+                key={item.title}
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black ${
+                      item.tone === "high" ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"
+                    }`}
+                  >
+                    {item.icon.slice(0, 1).toUpperCase()}
+                  </span>
+                  <h3 className="font-black text-white">{item.title}</h3>
+                </div>
+                <ul className="space-y-2">
+                  {item.bullets.map((bullet) => (
+                    <li className="flex gap-2 text-sm leading-6 text-white/78" key={bullet}>
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-200" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
             ))}
           </div>
         </div>
