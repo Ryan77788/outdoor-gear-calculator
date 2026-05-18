@@ -3,7 +3,7 @@
 import Image from "next/image";
 import html2canvas from "html2canvas";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { activityOptions, productUrl, type Activity, type Product } from "@/data/products";
+import { activityOptions, productUrl, type Activity, type GearCategory, type Product } from "@/data/products";
 import {
   buildGearList,
   getOutdoorInsights,
@@ -144,6 +144,167 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
   );
 }
 
+const shareBackgroundByActivity: Partial<Record<Activity, string>> = {
+  登山: "/share-hiking.jpg",
+  徒步: "/share-hiking.jpg",
+  露营: "/share-camping.jpg",
+  滑雪: "/share-skiing.jpg",
+  钓鱼: "/fishing-hero.jpg",
+};
+
+const shareCoreCategories = new Set<GearCategory>([
+  "shoes",
+  "shellJacket",
+  "backpack",
+  "pole",
+  "tent",
+  "sleepingBag",
+  "mat",
+  "stove",
+  "fishingRod",
+  "fishingLine",
+  "cooler",
+  "skiBoard",
+  "skiBinding",
+  "skiBoots",
+  "skiSuit",
+  "goggles",
+  "chair",
+  "power",
+]);
+
+const shareMustShowCategories = new Set<GearCategory>([
+  "skiBoard",
+  "helmet",
+  "goggles",
+  "fishingRod",
+  "tent",
+  "sleepingBag",
+  "shoes",
+]);
+
+const shareSafetyCategories = new Set<GearCategory>([
+  "firstAid",
+  "headlamp",
+  "lighting",
+  "helmet",
+  "gloves",
+  "raincoat",
+  "dryBag",
+  "sunglasses",
+  "vehicleTool",
+  "repair",
+]);
+
+const shareLowSignalCategories = new Set<GearCategory>([
+  "water",
+  "food",
+  "warmPatch",
+  "sunscreen",
+  "electrolyte",
+  "towel",
+  "consumable",
+]);
+
+function getShareBackground(activity: Activity) {
+  return shareBackgroundByActivity[activity] ?? "/share-hiking.jpg";
+}
+
+function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
+  const riskScore =
+    risks.length +
+    (weather === "雨天" ? 2 : 0) +
+    (weather === "寒冷" || weather === "炎热" ? 1 : 0) +
+    (tripDays === "4天以上" ? 1 : 0);
+
+  if (riskScore >= 5) {
+    return language === "zh" ? "高风险" : "High";
+  }
+
+  if (riskScore >= 3) {
+    return language === "zh" ? "中等风险" : "Elevated";
+  }
+
+  return language === "zh" ? "标准风险" : "Standard";
+}
+
+function preloadImage(src: string) {
+  return new Promise<void>((resolve) => {
+    const image = new window.Image();
+
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = src;
+  });
+}
+
+function getShareProductScore(product: Product) {
+  const normalizedText = `${product.name} ${product.nameEn ?? ""} ${product.category} ${product.categoryEn ?? ""}`.toLowerCase();
+  const namePenalty = /patch|disposable|water|food|towel|snack|bar|heat pack|暖贴|贴|饮用水|食物|毛巾|能量/.test(
+    normalizedText,
+  )
+    ? 14000
+    : 0;
+  const priorityScore = product.priority === "core" ? 14000 : product.priority === "important" ? 6500 : 0;
+  const mustShowScore = shareMustShowCategories.has(product.gearCategory) ? 9000 : 0;
+  const categoryScore = shareCoreCategories.has(product.gearCategory)
+    ? 5200
+    : shareSafetyCategories.has(product.gearCategory)
+      ? 2600
+      : 0;
+  const consumablePenalty = product.gearType === "consumable" || shareLowSignalCategories.has(product.gearCategory) ? 24000 : 0;
+  const budgetWeightScore = product.budgetWeight === "high" ? 1200 : product.budgetWeight === "medium" ? 500 : 0;
+
+  return mustShowScore + priorityScore + categoryScore + budgetWeightScore + product.subtotal - consumablePenalty - namePenalty;
+}
+
+function getShareGearHighlights(products: Product[]) {
+  const dedupedByName = Array.from(
+    products
+      .reduce((map, product) => {
+        const key = (product.nameEn ?? product.name).trim().toLowerCase();
+        const current = map.get(key);
+
+        if (!current || getShareProductScore(product) > getShareProductScore(current)) {
+          map.set(key, product);
+        }
+
+        return map;
+      }, new Map<string, Product>())
+      .values(),
+  );
+  const sortedProducts = [...dedupedByName].sort((a, b) => getShareProductScore(b) - getShareProductScore(a));
+  const primaryProducts = sortedProducts.filter(
+    (product) =>
+      product.priority === "core" ||
+      shareMustShowCategories.has(product.gearCategory) ||
+      shareCoreCategories.has(product.gearCategory),
+  );
+  const secondaryProducts = sortedProducts.filter((product) => !primaryProducts.includes(product));
+  const highlights = [...primaryProducts, ...secondaryProducts].slice(0, 5);
+
+  return highlights.length >= 4 ? highlights : sortedProducts.slice(0, Math.min(5, sortedProducts.length));
+}
+
+function getBudgetBreakdown(products: Product[]) {
+  const total = Math.max(1, products.reduce((sum, product) => sum + product.subtotal, 0));
+  const core = products
+    .filter((product) => product.priority === "core" || shareCoreCategories.has(product.gearCategory))
+    .reduce((sum, product) => sum + product.subtotal, 0);
+  const consumables = products
+    .filter((product) => product.gearType === "consumable" || shareLowSignalCategories.has(product.gearCategory))
+    .reduce((sum, product) => sum + product.subtotal, 0);
+  const safety = products
+    .filter((product) => shareSafetyCategories.has(product.gearCategory))
+    .reduce((sum, product) => sum + product.subtotal, 0);
+
+  return {
+    consumables: Math.round((consumables / total) * 100),
+    core: Math.round((core / total) * 100),
+    safety: Math.round((safety / total) * 100),
+  };
+}
+
 export default function Home() {
   const exportRef = useRef<HTMLDivElement | null>(null);
   const [language, setLanguage] = useState<Language>("en");
@@ -193,6 +354,42 @@ export default function Home() {
   const t = translations[language];
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
   const displayValue = (value: string) => localizeValue(value, language);
+  const shareBackground = getShareBackground(form.activity);
+  const shareRiskLevel = getShareRiskLevel(risks, form.weather, form.tripDays, language);
+  const shareGearHighlights = useMemo(() => getShareGearHighlights(productPlan.selectedProducts), [productPlan.selectedProducts]);
+  const shareBudgetBreakdown = useMemo(() => getBudgetBreakdown(productPlan.selectedProducts), [productPlan.selectedProducts]);
+  const shareLabels =
+    language === "zh"
+      ? {
+          activity: "活动",
+          budget: "预算",
+          budgetBreakdown: "预算分布",
+          consumables: "消耗品",
+          coreEquipment: "核心装备",
+          gearHighlights: "推荐装备亮点",
+          people: "人数",
+          risk: "风险等级",
+          slogan: "Plan smarter. Pack lighter. Go further.",
+          safetyGear: "安全装备",
+          total: "推荐总价",
+          tripDays: "行程",
+          weather: "天气",
+        }
+      : {
+          activity: "Activity",
+          budget: "Budget",
+          budgetBreakdown: "Budget Breakdown",
+          consumables: "Consumables",
+          coreEquipment: "Core gear",
+          gearHighlights: "Recommended Gear Highlights",
+          people: "People",
+          risk: "Risk level",
+          slogan: "Plan smarter. Pack lighter. Go further.",
+          safetyGear: "Safety gear",
+          total: "Recommended total",
+          tripDays: "Trip days",
+          weather: "Weather",
+        };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -359,15 +556,18 @@ export default function Home() {
       const exportElement = exportRef.current;
 
       exportElement.style.display = "block";
+      await preloadImage(shareBackground);
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
 
       const canvas = await html2canvas(exportElement, {
-        backgroundColor: "#ffffff",
-        scale: Math.min(2, window.devicePixelRatio || 1),
+        backgroundColor: null,
+        scale: Math.max(2, Math.min(3, window.devicePixelRatio || 2)),
+        useCORS: true,
       });
       const link = document.createElement("a");
 
-      link.download = "outdoor-plan.png";
+      link.download = "outdoor-ai-share-card.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (error) {
@@ -737,6 +937,9 @@ export default function Home() {
                 onClick={() => void handleGenerateShareImage()}
                 type="button"
               >
+                {isGeneratingShareImage && (
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-lime-800/25 border-t-lime-800" />
+                )}
                 {isGeneratingShareImage ? t.generating : t.generateShareImage}
               </button>
               {lastSavedPlanId && (
@@ -866,170 +1069,280 @@ export default function Home() {
         <div
           ref={exportRef}
           style={{
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "24px",
+            background: "#0f1f19",
+            backgroundImage: `linear-gradient(115deg, rgba(5, 20, 16, 0.94) 0%, rgba(5, 20, 16, 0.78) 42%, rgba(5, 20, 16, 0.34) 100%), linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.05)), url("${shareBackground}")`,
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
             boxShadow: "none",
-            color: "#0f172a",
+            color: "#ffffff",
             display: "none",
             fontFamily:
               'Arial, "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif',
+            height: "630px",
             left: "-9999px",
-            padding: "40px",
+            overflow: "hidden",
+            padding: "48px",
             position: "fixed",
             top: "0",
-            width: "900px",
+            width: "1200px",
             zIndex: "-1",
           }}
         >
-          <div style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: "24px" }}>
-            <p style={{ color: "#047857", fontSize: "16px", fontWeight: 700, margin: "0 0 10px" }}>
-              Outdoor Gear Planner
-            </p>
-            <h2 style={{ color: "#0f172a", fontSize: "42px", fontWeight: 900, lineHeight: 1.15, margin: 0 }}>
-              {t.shareImageTitle}
-            </h2>
-            <p style={{ color: "#475569", fontSize: "18px", lineHeight: 1.6, margin: "14px 0 0" }}>
-              {displayValue(form.activity)} · {displayValue(form.weather)} · {displayValue(form.tripDays)} ·{" "}
-              {formatPeople(form.peopleCount, language)}
-            </p>
-          </div>
-
           <div
             style={{
-              display: "grid",
-              gap: "12px",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              marginTop: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "24px",
+              height: "100%",
             }}
           >
-            {[
-              [t.exportActivity, displayValue(form.activity)],
-              [t.exportWeather, displayValue(form.weather)],
-              [t.exportDays, displayValue(form.tripDays)],
-              [t.exportPeople, formatPeople(form.peopleCount, language)],
-              [t.exportBudget, formatMoney(form.budget)],
-            ].map(([label, value]) => (
-              <div
-                key={label}
+            <header
+              style={{
+                alignItems: "center",
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ alignItems: "center", display: "flex", gap: "14px" }}>
+                <div
+                  style={{
+                    alignItems: "center",
+                    background: "rgba(255, 255, 255, 0.16)",
+                    border: "1px solid rgba(255, 255, 255, 0.34)",
+                    borderRadius: "18px",
+                    display: "flex",
+                    height: "56px",
+                    justifyContent: "center",
+                    width: "56px",
+                  }}
+                >
+                  <span style={{ color: "#d9f99d", fontSize: "28px", fontWeight: 900 }}>OA</span>
+                </div>
+                <div>
+                  <p style={{ color: "#ffffff", fontSize: "20px", fontWeight: 900, margin: 0 }}>Outdoor AI</p>
+                  <p style={{ color: "rgba(255, 255, 255, 0.74)", fontSize: "14px", fontWeight: 700, margin: "4px 0 0" }}>
+                    {shareLabels.slogan}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ alignItems: "center", display: "flex", gap: "10px" }}>
+                {[
+                  `${shareLabels.activity}: ${displayValue(form.activity)}`,
+                  `${shareLabels.weather}: ${displayValue(form.weather)}`,
+                  `${shareLabels.tripDays}: ${displayValue(form.tripDays)}`,
+                  `${shareLabels.people}: ${formatPeople(form.peopleCount, language)}`,
+                ].map((tag) => (
+                  <span
+                    key={tag}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.16)",
+                      border: "1px solid rgba(255, 255, 255, 0.26)",
+                      borderRadius: "999px",
+                      color: "rgba(255, 255, 255, 0.88)",
+                      fontSize: "13px",
+                      fontWeight: 900,
+                      padding: "9px 13px",
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+                <span
+                  style={{
+                    background: "rgba(217, 119, 6, 0.82)",
+                    border: "1px solid rgba(253, 230, 138, 0.52)",
+                    borderRadius: "999px",
+                    color: "#d9f99d",
+                    fontSize: "13px",
+                    fontWeight: 900,
+                    padding: "9px 13px",
+                  }}
+                >
+                  {shareLabels.risk}: {shareRiskLevel}
+                </span>
+              </div>
+            </header>
+
+            <div style={{ display: "grid", flex: 1, gap: "24px", gridTemplateColumns: "1.38fr 0.62fr", minHeight: 0 }}>
+              <section
                 style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "16px",
-                  padding: "14px",
+                  background: "rgba(255, 255, 255, 0.14)",
+                  border: "1px solid rgba(255, 255, 255, 0.28)",
+                  borderRadius: "34px",
+                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.28)",
+                  padding: "28px",
                 }}
               >
-                <p style={{ color: "#64748b", fontSize: "13px", fontWeight: 700, margin: "0 0 6px" }}>
-                  {label}
+                <p
+                  style={{
+                    color: "#bbf7d0",
+                    fontSize: "14px",
+                    fontWeight: 900,
+                    letterSpacing: "0.14em",
+                    margin: "0 0 10px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t.shareImageTitle}
                 </p>
-                <p style={{ color: "#0f172a", fontSize: "18px", fontWeight: 900, margin: 0 }}>{value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "grid", gap: "20px", gridTemplateColumns: "1fr 1fr", marginTop: "28px" }}>
-            <section>
-              <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-                {t.requiredGear}
-              </h3>
-              <div style={{ display: "grid", gap: "10px" }}>
-                {gearList.slice(0, 8).map((item, index) => (
+                <div style={{ alignItems: "end", display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <h2 style={{ color: "#ffffff", fontSize: "44px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                    {shareLabels.gearHighlights}
+                  </h2>
                   <div
-                    key={`${item.name}-${index}`}
                     style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "14px",
-                      padding: "12px",
+                      background: "#ecfdf5",
+                      border: "1px solid rgba(167, 243, 208, 0.95)",
+                      borderRadius: "20px",
+                      color: "#047857",
+                      minWidth: "188px",
+                      padding: "13px 16px",
+                      textAlign: "right",
                     }}
                   >
-                    <div style={{ alignItems: "center", display: "flex", gap: "10px", justifyContent: "space-between" }}>
-                      <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                        {index + 1}. {localizeGearName(item, language)}
-                      </p>
-                      <span style={{ color: "#047857", fontSize: "14px", fontWeight: 900 }}>
-                        {formatQuantity(item.quantity, language)}
-                      </span>
-                    </div>
-                    <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
-                      {localizeGearReason(item, language)}
+                    <p style={{ color: "#047857", fontSize: "12px", fontWeight: 900, margin: "0 0 5px" }}>
+                      {shareLabels.total}
+                    </p>
+                    <p style={{ color: "#064e3b", fontSize: "28px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                      {formatMoney(productPlan.totalPrice)}
                     </p>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
 
-            <section>
-              <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-                {t.recommendedProducts}
-              </h3>
-              <div style={{ display: "grid", gap: "10px" }}>
-                {productPlan.selectedProducts.slice(0, 5).map((product, index) => (
-                  <div
-                    key={`${product.name}-${index}`}
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "14px",
-                      padding: "12px",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: "12px", justifyContent: "space-between" }}>
-                      <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                        {localizeProductName(product, language)}
+                <div style={{ display: "grid", gap: "10px" }}>
+                  {shareGearHighlights.map((product, index) => (
+                    <div
+                      key={`${product.id}-${index}`}
+                      style={{
+                        alignItems: "center",
+                        background: "rgba(255, 255, 255, 0.88)",
+                        border: "1px solid rgba(255, 255, 255, 0.72)",
+                        borderRadius: "18px",
+                        color: "#0f172a",
+                        display: "grid",
+                        gap: "14px",
+                        gridTemplateColumns: "40px 1fr 86px 132px",
+                        minHeight: "58px",
+                        padding: "10px 14px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          alignItems: "center",
+                          background: index === 0 ? "#064e3b" : "#10b981",
+                          borderRadius: "14px",
+                          color: "#ffffff",
+                          display: "flex",
+                          fontSize: "17px",
+                          fontWeight: 900,
+                          height: "40px",
+                          justifyContent: "center",
+                          width: "40px",
+                        }}
+                      >
+                        {index + 1}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ color: "#0f172a", fontSize: "19px", fontWeight: 900, lineHeight: 1.1, margin: 0 }}>
+                          {localizeProductName(product, language)}
+                        </p>
+                        <p style={{ color: "#64748b", fontSize: "12px", fontWeight: 800, margin: "5px 0 0" }}>
+                          {localizeProductCategory(product, language)}
+                        </p>
+                      </div>
+                      <p style={{ color: "#475569", fontSize: "16px", fontWeight: 900, margin: 0, textAlign: "right" }}>
+                        x{product.quantity}
                       </p>
-                      <p style={{ color: "#047857", fontSize: "14px", fontWeight: 900, margin: 0 }}>
+                      <p style={{ color: "#047857", fontSize: "20px", fontWeight: 900, margin: 0, textAlign: "right" }}>
                         {formatMoney(product.subtotal)}
                       </p>
                     </div>
-                    <p style={{ color: "#475569", fontSize: "13px", lineHeight: 1.55, margin: "6px 0 0" }}>
-                      {t.quantity}：{product.quantity}
-                      {formatUnit(product.unit, language)} · {t.unitPrice}：{formatMoney(product.unitPrice)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div
+                  ))}
+                </div>
+              </section>
+
+              <aside
                 style={{
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  borderRadius: "14px",
-                  marginTop: "14px",
-                  padding: "14px",
+                  background: "rgba(15, 23, 42, 0.58)",
+                  border: "1px solid rgba(255, 255, 255, 0.24)",
+                  borderRadius: "34px",
+                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.24)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                  padding: "26px",
                 }}
               >
-                <p style={{ color: "#047857", fontSize: "16px", fontWeight: 900, margin: 0 }}>
-                  {t.recommendedTotal}：{formatMoney(productPlan.totalPrice)}
-                </p>
-              </div>
-            </section>
-          </div>
-
-          <section style={{ marginTop: "28px" }}>
-            <h3 style={{ color: "#0f172a", fontSize: "24px", fontWeight: 900, margin: "0 0 14px" }}>
-              {t.riskTips}
-            </h3>
-            <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(3, 1fr)" }}>
-              {risks.slice(0, 3).map((risk, index) => (
-                <div
-                  key={`${risk.title}-${index}`}
-                  style={{
-                    background: "#fffbeb",
-                    border: "1px solid #fde68a",
-                    borderRadius: "14px",
-                    padding: "14px",
-                  }}
-                >
-                  <p style={{ color: "#78350f", fontSize: "16px", fontWeight: 900, margin: "0 0 8px" }}>
-                    {localizeRiskTitle(risk, language)}
+                <div>
+                  <p style={{ color: "#bbf7d0", fontSize: "14px", fontWeight: 900, margin: "0 0 8px" }}>
+                    {shareLabels.budget}
                   </p>
-                  <p style={{ color: "#92400e", fontSize: "13px", lineHeight: 1.6, margin: 0 }}>
-                    {localizeRiskText(risk, language)}
+                  <p style={{ color: "#ffffff", fontSize: "34px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                    {formatMoney(form.budget)}
                   </p>
                 </div>
-              ))}
+
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    borderRadius: "24px",
+                    padding: "20px",
+                  }}
+                >
+                  <p style={{ color: "#ffffff", fontSize: "22px", fontWeight: 900, margin: "0 0 18px" }}>
+                    {shareLabels.budgetBreakdown}
+                  </p>
+                  {[
+                    [shareLabels.coreEquipment, shareBudgetBreakdown.core, "#34d399"],
+                    [shareLabels.consumables, shareBudgetBreakdown.consumables, "#fbbf24"],
+                    [shareLabels.safetyGear, shareBudgetBreakdown.safety, "#93c5fd"],
+                  ].map(([label, value, color]) => (
+                    <div key={String(label)} style={{ marginBottom: "15px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "7px" }}>
+                        <span style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "14px", fontWeight: 900 }}>
+                          {label}
+                        </span>
+                        <span style={{ color: "#ffffff", fontSize: "14px", fontWeight: 900 }}>{value}%</span>
+                      </div>
+                      <div style={{ background: "rgba(255, 255, 255, 0.16)", borderRadius: "999px", height: "10px", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            background: String(color),
+                            borderRadius: "999px",
+                            height: "10px",
+                            width: `${value}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, rgba(16, 185, 129, 0.92), rgba(132, 204, 22, 0.9))",
+                    borderRadius: "24px",
+                    color: "#052e1c",
+                    marginTop: "auto",
+                    padding: "20px",
+                  }}
+                >
+                  <p style={{ fontSize: "13px", fontWeight: 900, margin: "0 0 8px", opacity: 0.75 }}>
+                    {shareLabels.total}
+                  </p>
+                  <p style={{ fontSize: "38px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                    {formatMoney(productPlan.totalPrice)}
+                  </p>
+                  <p style={{ fontSize: "13px", fontWeight: 900, margin: "10px 0 0", opacity: 0.78 }}>
+                  {shareRiskLevel}
+                  </p>
+                </div>
+              </aside>
             </div>
-          </section>
+          </div>
         </div>
 
         <section className="mx-auto max-w-6xl px-6 pb-10">
