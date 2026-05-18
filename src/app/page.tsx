@@ -18,6 +18,7 @@ import {
   type TripDays,
   type Weather,
 } from "@/lib/recommendation";
+import { getGearTier, getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
 import {
   formatCurrency as formatLocalizedCurrency,
@@ -50,6 +51,7 @@ type FormState = {
 
 type SavedPlan = FormState & {
   _id: string;
+  gearTier?: GearTier;
   gearList: GearItem[];
   recommendedProducts: Product[];
   risks: RiskBlock[];
@@ -332,6 +334,9 @@ export default function Home() {
     () => getProductPlan(form.activity, form.budget, form.peopleCount, form.tripDays, form.weather),
     [form.activity, form.budget, form.peopleCount, form.tripDays, form.weather],
   );
+  const gearTier = productPlan.gearTier ?? getGearTier(form.budget);
+  const gearTierMeta = getGearTierMeta(gearTier, language);
+  const gearTierStyle = getGearTierStyle(gearTier);
   const hasMoreGear = gearList.length > 6;
   const risks = useMemo(
     () => getRiskBlocks(form.activity, form.weather, form.tripDays),
@@ -379,6 +384,7 @@ export default function Home() {
           consumables: "消耗品",
           coreEquipment: "核心装备",
           gearHighlights: "推荐装备亮点",
+          gearTier: "装备等级",
           people: "人数",
           risk: "风险等级",
           slogan: "Plan smarter. Pack lighter. Go further.",
@@ -394,6 +400,7 @@ export default function Home() {
           consumables: "Consumables",
           coreEquipment: "Core gear",
           gearHighlights: "Recommended Gear Highlights",
+          gearTier: "Gear Tier",
           people: "People",
           risk: "Risk level",
           slogan: "Plan smarter. Pack lighter. Go further.",
@@ -492,6 +499,7 @@ export default function Home() {
           recommendedProducts: productPlan.selectedProducts,
           risks,
           totalPrice: productPlan.totalPrice,
+          gearTier,
         }),
       });
 
@@ -795,6 +803,9 @@ export default function Home() {
                 </p>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">{t.aiPanelTitle}</h2>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full border px-4 py-2 text-sm font-black shadow-sm ${gearTierStyle.badgeClass}`}>
+                    {gearTierMeta.badge}
+                  </span>
                   <span className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm">
                     {localizedInsightReport.profile}
                   </span>
@@ -803,6 +814,7 @@ export default function Home() {
                   </span>
                 </div>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">{localizedInsightReport.summary}</p>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">{gearTierMeta.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm">
                 <div className="rounded-lg bg-white px-3 py-2">
@@ -1191,6 +1203,7 @@ export default function Home() {
 
               <div style={{ alignItems: "center", display: "flex", gap: "10px" }}>
                 {[
+                  `${shareLabels.gearTier}: ${gearTierMeta.shareTitle}`,
                   `${shareLabels.activity}: ${displayValue(form.activity)}`,
                   `${shareLabels.weather}: ${displayValue(form.weather)}`,
                   `${shareLabels.tripDays}: ${displayValue(form.tripDays)}`,
@@ -1339,9 +1352,21 @@ export default function Home() {
               >
                 <div>
                   <p style={{ color: "#bbf7d0", fontSize: "14px", fontWeight: 900, margin: "0 0 8px" }}>
+                    {shareLabels.gearTier}
+                  </p>
+                  <p style={{ color: gearTierStyle.shareColor, fontSize: "31px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                    {gearTierMeta.shareTitle}
+                  </p>
+                  <p style={{ color: "rgba(255, 255, 255, 0.72)", fontSize: "13px", fontWeight: 800, lineHeight: 1.45, margin: "10px 0 0" }}>
+                    {gearTierMeta.description}
+                  </p>
+                </div>
+
+                <div>
+                  <p style={{ color: "#bbf7d0", fontSize: "14px", fontWeight: 900, margin: "0 0 8px" }}>
                     {shareLabels.budget}
                   </p>
-                  <p style={{ color: "#ffffff", fontSize: "34px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
+                  <p style={{ color: "#ffffff", fontSize: "30px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
                     {formatMoney(form.budget)}
                   </p>
                 </div>

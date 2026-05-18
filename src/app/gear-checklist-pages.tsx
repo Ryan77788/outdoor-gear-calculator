@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { Activity } from "@/data/products";
 import type { TripDays, Weather } from "@/lib/recommendation";
+import { getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
 
 type GearChecklistPage = {
@@ -16,6 +17,7 @@ type GearChecklistPage = {
   gear: string[];
   risks: string[];
   image: string;
+  tier: GearTier;
   analysisContext: {
     activity: Activity;
     weather: Weather;
@@ -62,6 +64,7 @@ export const gearChecklistPages = {
       "Dehydration, blisters, and late starts can turn an easy route into a long exit.",
     ],
     image: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1800&q=85",
+    tier: "mid",
     analysisContext: { activity: "徒步", weather: "雨天", tripDays: "2-3天", peopleCount: 2 },
   },
   camping: {
@@ -101,6 +104,7 @@ export const gearChecklistPages = {
       "Wind and rain expose weak tent staking, especially on open sites.",
     ],
     image: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1800&q=85",
+    tier: "premium",
     analysisContext: { activity: "露营", weather: "寒冷", tripDays: "2-3天", peopleCount: 3 },
   },
   skiing: {
@@ -140,6 +144,7 @@ export const gearChecklistPages = {
       "Altitude, sun reflection, and dehydration can build fatigue quickly.",
     ],
     image: "https://images.unsplash.com/photo-1551524559-8af4e6624178?auto=format&fit=crop&w=1800&q=85",
+    tier: "premium",
     analysisContext: { activity: "滑雪", weather: "寒冷", tripDays: "1天", peopleCount: 2 },
   },
   fishing: {
@@ -179,6 +184,7 @@ export const gearChecklistPages = {
       "Sun, wind, and insects can become the main comfort problem on long sessions.",
     ],
     image: "/fishing-hero.jpg",
+    tier: "mid",
     analysisContext: { activity: "钓鱼", weather: "雨天", tripDays: "1天", peopleCount: 2 },
   },
   roadTrip: {
@@ -218,6 +224,7 @@ export const gearChecklistPages = {
       "Weather and road closures can change the route plan with little notice.",
     ],
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=85",
+    tier: "premium",
     analysisContext: { activity: "自驾游", weather: "晴天", tripDays: "4天以上", peopleCount: 4 },
   },
   cycling: {
@@ -257,6 +264,7 @@ export const gearChecklistPages = {
       "Under-fueling can cause sharp fatigue on longer or hillier routes.",
     ],
     image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=1800&q=85",
+    tier: "mid",
     analysisContext: { activity: "骑行", weather: "炎热", tripDays: "1天", peopleCount: 2 },
   },
   beachTravel: {
@@ -296,6 +304,7 @@ export const gearChecklistPages = {
       "Heat, dehydration, and lost small items are the most common beach-day problems.",
     ],
     image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=85",
+    tier: "entry",
     analysisContext: { activity: "海边旅行", weather: "炎热", tripDays: "2-3天", peopleCount: 3 },
   },
 } satisfies Record<string, GearChecklistPage>;
@@ -326,6 +335,8 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
 
 export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
   const analysis = buildRecommendationAnalysis({ ...page.analysisContext, language: "en" });
+  const tierMeta = getGearTierMeta(page.tier, "en");
+  const tierStyle = getGearTierStyle(page.tier);
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
@@ -346,6 +357,9 @@ export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
           <p className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
             {page.eyebrow}
           </p>
+          <p className={`mb-4 w-fit rounded-full border px-5 py-2 text-sm font-black shadow-lg shadow-black/10 ${tierStyle.badgeClass}`}>
+            {tierMeta.shareTitle}
+          </p>
           <h1 className="max-w-3xl text-5xl font-black leading-tight text-white drop-shadow-sm sm:text-6xl">
             <span style={{ textShadow: "0 4px 22px rgba(0, 0, 0, 0.42)" }}>{page.h1}</span>
           </h1>
@@ -354,6 +368,12 @@ export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
             style={{ textShadow: "0 2px 14px rgba(0, 0, 0, 0.34)" }}
           >
             {page.intro}
+          </p>
+          <p
+            className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/82"
+            style={{ textShadow: "0 2px 14px rgba(0, 0, 0, 0.34)" }}
+          >
+            {tierMeta.description}
           </p>
           <Link
             className="mt-8 w-fit rounded-xl bg-emerald-700 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"

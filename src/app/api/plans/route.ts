@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       recommendedProducts: body.recommendedProducts,
       risks: body.risks,
       totalPrice: body.totalPrice,
+      gearTier: body.gearTier,
       createdAt,
     };
     const result = await db.collection(SAVED_PLANS_COLLECTION).insertOne(plan);

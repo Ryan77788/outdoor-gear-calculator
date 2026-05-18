@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Activity, Product } from "@/data/products";
 import { getOutdoorInsights, type GearItem, type RiskBlock, type TripDays, type Weather } from "@/lib/recommendation";
+import { getGearTier, getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import {
   formatCurrency,
   formatQuantity,
@@ -48,6 +49,7 @@ type SharedPlan = {
   recommendedProducts: Product[];
   risks: RiskBlock[];
   totalPrice: number;
+  gearTier?: GearTier;
   createdAt: string;
 };
 
@@ -181,6 +183,9 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
   }
 
   const remainingBudget = plan.budget - plan.totalPrice;
+  const gearTier = plan.gearTier ?? getGearTier(plan.budget);
+  const gearTierMeta = getGearTierMeta(gearTier, language);
+  const gearTierStyle = getGearTierStyle(gearTier);
   const insightReport = localizeInsightReport(
     getOutdoorInsights(plan.activity, plan.weather, plan.tripDays, plan.peopleCount, plan.budget),
     language,
@@ -228,6 +233,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
             <InfoCard label={t.peopleCount} value={formatPeople(plan.peopleCount, language)} />
             <InfoCard label={t.exportBudget} value={formatCurrency(plan.budget, language)} />
             <InfoCard label={t.recommendedTotal} value={formatCurrency(plan.totalPrice, language)} />
+            <InfoCard label={language === "zh" ? "装备等级" : "Gear Tier"} value={gearTierMeta.badge} />
             <InfoCard
               label={remainingBudget < 0 ? t.slightlyOver : t.remainingBudget}
               value={formatCurrency(Math.abs(remainingBudget), language)}
@@ -242,8 +248,12 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
               <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">AI Outdoor Insights</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">{t.aiPanelTitle}</h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{insightReport.summary}</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{gearTierMeta.description}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-4 py-2 text-sm font-black ${gearTierStyle.badgeClass}`}>
+                {gearTierMeta.badge}
+              </span>
               <span className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white">
                 {insightReport.profile}
               </span>

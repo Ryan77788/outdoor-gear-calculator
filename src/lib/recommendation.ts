@@ -10,6 +10,7 @@ import {
   type ProductPriority,
   type ProductTemplate,
 } from "@/data/products";
+import { getGearTier, getProductTierAffinity, type GearTier } from "@/lib/gear-tier";
 
 export type TripDays = "1天" | "2-3天" | "4天以上";
 export type Weather = "晴天" | "雨天" | "寒冷" | "炎热";
@@ -481,7 +482,10 @@ function getBudgetLevel(budget: number, peopleCount: number): BudgetLevel {
   return "ultra";
 }
 
-function preferredLevelForBase(budgetLevel: BudgetLevel, product: ProductTemplate) {
+function preferredLevelForBase(budgetLevel: BudgetLevel, product: ProductTemplate, gearTier: GearTier) {
+  if (gearTier === "entry") return "basic";
+  if (gearTier === "premium" && product.priority === "core") return "premium";
+  if (gearTier === "mid") return product.priority === "core" ? "standard" : "basic";
   if (budgetLevel === "low") return "basic";
   if (budgetLevel === "mid") return product.priority === "core" ? "standard" : "basic";
   return product.budgetWeight === "high" && product.priority === "core" ? "standard" : "basic";
@@ -505,32 +509,43 @@ function productWeatherRank(product: ProductTemplate, weather: Weather) {
   return 3;
 }
 
-function productSortValue(product: ProductTemplate, activity: Activity, weather: Weather) {
+function productSortValue(product: ProductTemplate, activity: Activity, weather: Weather, gearTier: GearTier = "mid") {
   const coreIndex = activityCoreGearCategories[activity].indexOf(product.gearCategory);
   const coreRank = coreIndex === -1 ? 50 : coreIndex;
+  const tierAffinity = getProductTierAffinity(product.brand, product.level, gearTier);
 
   return (
     coreRank * 1000 +
     productWeatherRank(product, weather) * 100 +
+    tierAffinity * 35 +
     productPriorityRank[product.priority] * 20 +
     budgetWeightRank[product.budgetWeight] * 5 +
     levelRankValue[product.level]
   );
 }
 
-function chooseBaseProduct(items: ProductTemplate[], budgetLevel: BudgetLevel, activity: Activity, weather: Weather) {
+function chooseBaseProduct(
+  items: ProductTemplate[],
+  budgetLevel: BudgetLevel,
+  activity: Activity,
+  weather: Weather,
+  gearTier: GearTier,
+) {
   const reference = items[0];
-  const preferred = preferredLevelForBase(budgetLevel, reference);
+  const preferred = preferredLevelForBase(budgetLevel, reference, gearTier);
   const preferredRank = levelRankValue[preferred];
 
   return [...items].sort((a, b) => {
     const weatherDiff = productWeatherRank(a, weather) - productWeatherRank(b, weather);
     if (weatherDiff !== 0) return weatherDiff;
 
+    const tierDiff = getProductTierAffinity(a.brand, a.level, gearTier) - getProductTierAffinity(b.brand, b.level, gearTier);
+    if (tierDiff !== 0) return tierDiff;
+
     const levelDistance = Math.abs(levelRankValue[a.level] - preferredRank) - Math.abs(levelRankValue[b.level] - preferredRank);
     if (levelDistance !== 0) return levelDistance;
 
-    const sortDiff = productSortValue(a, activity, weather) - productSortValue(b, activity, weather);
+    const sortDiff = productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier);
     if (sortDiff !== 0) return sortDiff;
 
     return a.price - b.price;
@@ -628,6 +643,7 @@ function applyBudgetUpgrades(
   people: number,
   days: TripDays,
   weather: Weather,
+  gearTier: GearTier,
 ) {
   const maxAllowed = Math.floor(Math.max(0, budget) * 1.1);
   let currentSelection = selected;
@@ -646,6 +662,11 @@ function applyBudgetUpgrades(
           .map((candidate) => ({ current: product, candidate, delta: candidate.subtotal - product.subtotal }));
       })
       .sort((a, b) => {
+        const tierDiff =
+          getProductTierAffinity(a.candidate.brand, a.candidate.level, gearTier) -
+          getProductTierAffinity(b.candidate.brand, b.candidate.level, gearTier);
+        if (tierDiff !== 0) return tierDiff;
+
         const valueDiff =
           budgetWeightRank[a.candidate.budgetWeight] - budgetWeightRank[b.candidate.budgetWeight] ||
           levelRankValue[b.candidate.level] - levelRankValue[a.candidate.level];
@@ -677,7 +698,9 @@ export function selectProductsByPriority(
   const selectedProducts: Product[] = [];
   const selectedGearCategories = new Set<GearCategory>();
 
-  for (const product of [...products].sort((a, b) => productSortValue(a, activity, weather) - productSortValue(b, activity, weather))) {
+  const gearTier = getGearTier(budget);
+
+  for (const product of [...products].sort((a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier))) {
     tryAddProduct(selectedProducts, selectedGearCategories, product, maxAllowed);
   }
 
@@ -692,6 +715,7 @@ export function selectProductsByPriority(
 
 export function getProductPlan(activity: Activity, budget: number, peopleCount: number, days: TripDays, weather: Weather) {
   const budgetLevel = getBudgetLevel(budget, peopleCount);
+  const gearTier = getGearTier(budget);
   const maxAllowed = Math.floor(Math.max(0, budget) * 1.1);
   const pool = productCatalog[activity].filter((product) => product.activity.includes(activity));
   const grouped = groupByGearCategory(pool);
@@ -703,7 +727,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
 
     if (!variants) continue;
 
-    const baseProduct = chooseBaseProduct(variants, budgetLevel, activity, weather);
+    const baseProduct = chooseBaseProduct(variants, budgetLevel, activity, weather, gearTier);
     const candidate = buildCandidate(baseProduct, peopleCount, days, weather);
 
     if (!tryAddProduct(selected, selectedCategories, candidate, maxAllowed)) {
@@ -722,7 +746,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
     .filter((product) => product.weather.includes(weather) || weatherBoostCategories[weather].includes(product.gearCategory))
     .filter((product) => !weatherPenaltyCategories[weather].includes(product.gearCategory))
     .map((product) => buildCandidate(product, peopleCount, days, weather))
-    .sort((a, b) => productSortValue(a, activity, weather) - productSortValue(b, activity, weather));
+    .sort((a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier));
 
   const currentCategories = new Set(selectedProducts.map((product) => product.gearCategory));
 
@@ -730,7 +754,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
     tryAddProduct(selectedProducts, currentCategories, product, maxAllowed);
   }
 
-  selectedProducts = applyBudgetUpgrades(selectedProducts, grouped, budget, peopleCount, days, weather);
+  selectedProducts = applyBudgetUpgrades(selectedProducts, grouped, budget, peopleCount, days, weather, gearTier);
 
   const optionalProducts = pool
     .filter((product) => product.priority === "optional")
@@ -753,10 +777,11 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
 
   return {
     selectedProducts: selectedProducts.sort(
-      (a, b) => productSortValue(a, activity, weather) - productSortValue(b, activity, weather),
+      (a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier),
     ),
     totalPrice,
     remainingBudget: Math.max(-Math.floor(Math.max(0, budget) * 0.1), Math.max(0, budget) - totalPrice),
+    gearTier,
   };
 }
 
