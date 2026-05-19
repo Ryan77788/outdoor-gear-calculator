@@ -25,6 +25,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
+import { getActivityHeroImage } from "@/lib/activity-backgrounds";
 
 export const dynamic = "force-dynamic";
 const SAVED_PLANS_COLLECTION = "saved_plans";
@@ -186,6 +187,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
   const gearTier = plan.gearTier ?? getGearTier(plan.budget);
   const gearTierMeta = getGearTierMeta(gearTier, language);
   const gearTierStyle = getGearTierStyle(gearTier);
+  const heroImage = getActivityHeroImage(plan.activity);
   const insightReport = localizeInsightReport(
     getOutdoorInsights(plan.activity, plan.weather, plan.tripDays, plan.peopleCount, plan.budget),
     language,
@@ -206,8 +208,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
           aria-hidden="true"
           className="absolute inset-0 -z-20 bg-cover bg-center"
           style={{
-            backgroundImage:
-              'linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(22, 80, 45, 0.12), rgba(238, 243, 234, 0.95)), url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=85")',
+            backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(22, 80, 45, 0.12), rgba(238, 243, 234, 0.95)), url("${heroImage}")`,
           }}
         />
         <div className="mx-auto flex min-h-[300px] max-w-6xl flex-col justify-end px-5 pb-10 pt-16 sm:px-6">

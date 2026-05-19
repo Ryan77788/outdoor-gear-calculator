@@ -38,7 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getActivityHeroImage } from "@/lib/activity-backgrounds";
+import { getShareCardBackgroundImage } from "@/lib/activity-backgrounds";
 
 type IconName = RiskIconName;
 
@@ -203,7 +203,7 @@ const shareLowSignalCategories = new Set<GearCategory>([
 ]);
 
 function getShareBackground(activity: Activity) {
-  return getActivityHeroImage(activity);
+  return getShareCardBackgroundImage(activity);
 }
 
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {

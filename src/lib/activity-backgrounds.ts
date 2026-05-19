@@ -1,35 +1,61 @@
 import type { Activity } from "@/data/products";
 
-export const activityHeroImages: Record<Activity, string> = {
-  登山: "/share-hiking.jpg",
-  徒步: "/share-hiking.jpg",
-  露营: "/share-camping.jpg",
-  滑雪: "/share-skiing.jpg",
-  钓鱼: "/fishing-hero.jpg",
-  自驾游: "/share-hiking.jpg",
-  骑行: "/activity/trail-running.jpg",
-  海边旅行: "/activity/beach-camping.jpg",
-  越野跑: "/activity/trail-running.jpg",
-  重装徒步: "/activity/backpacking.jpg",
-  攀岩: "/activity/climbing.jpg",
-  皮划艇: "/activity/kayaking.jpg",
-  单板滑雪: "/activity/snowboarding.jpg",
-  沙漠徒步: "/activity/desert-hiking.jpg",
-  冬季露营: "/activity/winter-camping.jpg",
-  海边露营: "/activity/beach-camping.jpg",
+type ActivityBackground = {
+  image: string;
+  slug?: string;
+  alt: string;
 };
 
-export const activityHeroImagesBySlug: Record<string, string> = {
-  "trail-running": activityHeroImages["越野跑"],
-  backpacking: activityHeroImages["重装徒步"],
-  climbing: activityHeroImages["攀岩"],
-  kayaking: activityHeroImages["皮划艇"],
-  snowboarding: activityHeroImages["单板滑雪"],
-  "desert-hiking": activityHeroImages["沙漠徒步"],
-  "winter-camping": activityHeroImages["冬季露营"],
-  "beach-camping": activityHeroImages["海边露营"],
+const fallbackActivityBackground: ActivityBackground = {
+  image: "/share-hiking.jpg",
+  alt: "Outdoor trail and mountain landscape",
 };
+
+export const activityBackgrounds: Record<Activity, ActivityBackground> = {
+  登山: { image: "/share-hiking.jpg", alt: "Mountain hiking landscape" },
+  徒步: { image: "/share-hiking.jpg", alt: "Hiking trail landscape" },
+  露营: { image: "/share-camping.jpg", alt: "Outdoor camping site" },
+  滑雪: { image: "/share-skiing.jpg", alt: "Skiing on a snowy mountain" },
+  钓鱼: { image: "/fishing-hero.jpg", alt: "Fishing by the water" },
+  自驾游: { image: "/share-hiking.jpg", alt: "Outdoor road trip landscape" },
+  骑行: { image: "/activity/trail-running.jpg", alt: "Fast movement through an outdoor trail" },
+  海边旅行: { image: "/activity/beach-camping.jpg", alt: "Beach and coastal outdoor scene" },
+  越野跑: { image: "/activity/trail-running.jpg", slug: "trail-running", alt: "Trail running route" },
+  重装徒步: { image: "/activity/backpacking.jpg", slug: "backpacking", alt: "Backpacking trail scene" },
+  攀岩: { image: "/activity/climbing.jpg", slug: "climbing", alt: "Outdoor rock climbing route" },
+  皮划艇: { image: "/activity/kayaking.jpg", slug: "kayaking", alt: "Kayakers paddling on a lake" },
+  单板滑雪: { image: "/activity/snowboarding.jpg", slug: "snowboarding", alt: "Snowboarding on a snowy slope" },
+  沙漠徒步: { image: "/activity/desert-hiking.jpg", slug: "desert-hiking", alt: "Desert hiking landscape" },
+  冬季露营: { image: "/activity/winter-camping.jpg", slug: "winter-camping", alt: "Winter camping in snow" },
+  海边露营: { image: "/activity/beach-camping.jpg", slug: "beach-camping", alt: "Beach camping by the coast" },
+};
+
+export const activityHeroImages: Record<Activity, string> = Object.fromEntries(
+  Object.entries(activityBackgrounds).map(([activity, background]) => [activity, background.image]),
+) as Record<Activity, string>;
+
+export const activityHeroImagesBySlug: Record<string, string> = Object.fromEntries(
+  Object.values(activityBackgrounds)
+    .filter((background): background is ActivityBackground & { slug: string } => Boolean(background.slug))
+    .map((background) => [background.slug, background.image]),
+);
+
+export function getActivityBackground(activity: Activity) {
+  return activityBackgrounds[activity] ?? fallbackActivityBackground;
+}
+
+export function getActivityBackgroundBySlug(slug: string) {
+  return Object.values(activityBackgrounds).find((background) => background.slug === slug) ?? fallbackActivityBackground;
+}
 
 export function getActivityHeroImage(activity: Activity) {
-  return activityHeroImages[activity] ?? "/share-hiking.jpg";
+  return getActivityBackground(activity).image;
+}
+
+export function getSeoActivityImage(activity: Activity) {
+  return getActivityBackground(activity).image;
+}
+
+export function getShareCardBackgroundImage(activity: Activity) {
+  return getActivityBackground(activity).image;
 }

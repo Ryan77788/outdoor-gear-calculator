@@ -4,7 +4,7 @@ import type { Activity } from "@/data/products";
 import type { TripDays, Weather } from "@/lib/recommendation";
 import { getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
-import { getActivityHeroImage } from "@/lib/activity-backgrounds";
+import { getActivityHeroImage, getSeoActivityImage } from "@/lib/activity-backgrounds";
 
 type GearChecklistPage = {
   slug: string;
@@ -416,7 +416,7 @@ export const gearChecklistPages = {
 
 export function createChecklistMetadata(page: GearChecklistPage): Metadata {
   const url = `https://outdoor-gear-calculator.com/${page.slug}`;
-  const image = getActivityHeroImage(page.analysisContext.activity);
+  const image = getSeoActivityImage(page.analysisContext.activity);
   const imageUrl = new URL(image, "https://outdoor-gear-calculator.com").toString();
 
   return {
