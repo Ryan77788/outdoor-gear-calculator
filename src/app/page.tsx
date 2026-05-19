@@ -38,7 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getShareCardBackgroundImage } from "@/lib/activity-backgrounds";
+import { getActivityBackground } from "@/lib/activity-backgrounds";
 
 type IconName = RiskIconName;
 
@@ -202,10 +202,6 @@ const shareLowSignalCategories = new Set<GearCategory>([
   "consumable",
 ]);
 
-function getShareBackground(activity: Activity) {
-  return getShareCardBackgroundImage(activity);
-}
-
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
   const riskScore =
     risks.length +
@@ -364,7 +360,6 @@ export default function Home() {
   const t = translations[language];
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
   const displayValue = (value: string) => localizeValue(value, language);
-  const shareBackground = getShareBackground(form.activity);
   const shareRiskLevel = getShareRiskLevel(risks, form.weather, form.tripDays, language);
   const shareGearHighlights = useMemo(() => getShareGearHighlights(productPlan.selectedProducts), [productPlan.selectedProducts]);
   const shareBudgetBreakdown = useMemo(() => getBudgetBreakdown(productPlan.selectedProducts), [productPlan.selectedProducts]);
@@ -567,9 +562,12 @@ export default function Home() {
 
     try {
       const exportElement = exportRef.current;
+      const backgroundUrl = getActivityBackground(form.activity).image;
+
+      console.log("share-card-background", form.activity, backgroundUrl);
 
       exportElement.style.display = "block";
-      await preloadImage(shareBackground);
+      await preloadImage(backgroundUrl);
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
 
@@ -1147,7 +1145,7 @@ export default function Home() {
           ref={exportRef}
           style={{
             background: "#0f1f19",
-            backgroundImage: `linear-gradient(115deg, rgba(5, 20, 16, 0.94) 0%, rgba(5, 20, 16, 0.78) 42%, rgba(5, 20, 16, 0.34) 100%), linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.05)), url("${shareBackground}")`,
+            backgroundImage: `linear-gradient(115deg, rgba(5, 20, 16, 0.94) 0%, rgba(5, 20, 16, 0.78) 42%, rgba(5, 20, 16, 0.34) 100%), linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.05)), url("${getActivityBackground(form.activity).image}")`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "cover",

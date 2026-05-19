@@ -40,8 +40,37 @@ export const activityHeroImagesBySlug: Record<string, string> = Object.fromEntri
     .map((background) => [background.slug, background.image]),
 );
 
-export function getActivityBackground(activity: Activity) {
-  return activityBackgrounds[activity] ?? fallbackActivityBackground;
+const activityBackgroundAliases: Record<string, Activity> = {
+  "trail running": "越野跑",
+  "trail-running": "越野跑",
+  backpacking: "重装徒步",
+  climbing: "攀岩",
+  kayaking: "皮划艇",
+  snowboarding: "单板滑雪",
+  "desert hiking": "沙漠徒步",
+  "desert-hiking": "沙漠徒步",
+  "winter camping": "冬季露营",
+  "winter-camping": "冬季露营",
+  "beach camping": "海边露营",
+  "beach-camping": "海边露营",
+};
+
+function normalizeActivityKey(activity: string) {
+  return activity.trim().toLowerCase();
+}
+
+function resolveActivity(activity: Activity | string) {
+  if (activity in activityBackgrounds) {
+    return activity as Activity;
+  }
+
+  return activityBackgroundAliases[normalizeActivityKey(activity)];
+}
+
+export function getActivityBackground(activity: Activity | string) {
+  const resolvedActivity = resolveActivity(activity);
+
+  return resolvedActivity ? activityBackgrounds[resolvedActivity] : fallbackActivityBackground;
 }
 
 export function getActivityBackgroundBySlug(slug: string) {

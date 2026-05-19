@@ -55,3 +55,9 @@ test("share card backgrounds do not fall back for configured new activities", ()
   assert.equal(backgrounds.getShareCardBackgroundImage("沙漠徒步"), "/activity/desert-hiking.jpg");
   assert.equal(backgrounds.getShareCardBackgroundImage("冬季露营"), "/activity/winter-camping.jpg");
 });
+
+test("desert hiking aliases resolve to the dedicated desert image", () => {
+  assert.equal(backgrounds.getActivityBackground("沙漠徒步").image, "/activity/desert-hiking.jpg");
+  assert.equal(backgrounds.getActivityBackground("Desert Hiking").image, "/activity/desert-hiking.jpg");
+  assert.equal(backgrounds.getActivityBackground("desert-hiking").image, "/activity/desert-hiking.jpg");
+});
