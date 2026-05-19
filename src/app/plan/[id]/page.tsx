@@ -219,7 +219,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
             {localizeValue(plan.activity, language)} {language === "en" ? "Gear Plan" : "装备方案"}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
-            {formatPeople(plan.peopleCount, language)} · {localizeValue(plan.tripDays, language)} 路{" "}
+            {formatPeople(plan.peopleCount, language)} · {localizeValue(plan.tripDays, language)} ·{" "}
             {localizeValue(plan.weather, language)} · {t.savedAt} {formatSavedTime(plan.createdAt, language)}
           </p>
         </div>
@@ -369,7 +369,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
           <div className="mb-4">
             <h2 className="text-xl font-black text-amber-950">{t.riskTips}</h2>
             <p className="mt-1 text-sm text-amber-700">
-              {localizeValue(plan.activity, language)} · {localizeValue(plan.weather, language)} 路{" "}
+              {localizeValue(plan.activity, language)} · {localizeValue(plan.weather, language)} ·{" "}
               {localizeValue(plan.tripDays, language)}
             </p>
           </div>
