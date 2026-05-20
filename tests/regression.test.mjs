@@ -256,16 +256,31 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
 
   for (const token of [
     "数据分析后台",
+    "今日",
+    "最近 7 天",
+    "最近 30 天",
+    "全部",
     "总生成次数",
     "商品点击次数",
     "保存方案次数",
+    "分享图生成次数",
+    "分享链接复制次数",
+    "平均预算",
+    "平均推荐总价",
+    "商品点击率",
+    "保存率",
+    "分享率",
     "热门活动",
     "热门商品",
     "热门商家",
+    "热门天气",
     "预算分布",
+    "最近行为",
     "活动类型",
     "商品名称",
     "商家",
+    "时间",
+    "类型",
     "次数",
     "预算区间",
     "数据来自 MongoDB logs 集合",
@@ -283,9 +298,17 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
     "calculator",
     "product_click",
     "saved_plan",
+    "share_image",
+    "share_link_copy",
     "activity",
     "productName",
     "merchant",
+    "weather",
+    "recentLogs",
+    "$gte",
+    "$lt",
+    "$avg",
+    "$limit: 20",
     "0-1000",
     "1000-3000",
     "3000-8000",
@@ -298,4 +321,9 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
   assert.ok(analyticsApiSource.includes("401"), "analytics API should reject invalid passwords");
   assert.ok(plansRouteSource.includes('type: "saved_plan"'), "saving a plan should write saved_plan logs");
   assert.ok(plansRouteSource.includes('collection("logs")'), "saved_plan events should go to MongoDB logs collection");
+
+  const homeSource = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
+
+  assert.ok(homeSource.includes('type: "share_image"'), "share image generation should write logs");
+  assert.ok(homeSource.includes('type: "share_link_copy"'), "share link copying should write logs");
 });

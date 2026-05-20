@@ -541,6 +541,24 @@ export default function Home() {
   async function handleCopyShareLink(planId: string) {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}`);
+      await fetch("/api/log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "share_link_copy",
+          data: {
+            planId,
+            activity: form.activity,
+            days: form.tripDays,
+            weather: form.weather,
+            people: form.peopleCount,
+            budget: form.budget,
+            totalPrice: productPlan.totalPrice,
+          },
+        }),
+      });
       setCopiedPlanId(planId);
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
     } catch (error) {
@@ -581,6 +599,23 @@ export default function Home() {
       link.download = "outdoor-ai-share-card.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
+      await fetch("/api/log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "share_image",
+          data: {
+            activity: form.activity,
+            days: form.tripDays,
+            weather: form.weather,
+            people: form.peopleCount,
+            budget: form.budget,
+            totalPrice: productPlan.totalPrice,
+          },
+        }),
+      });
     } catch (error) {
       console.error("Failed to generate share image:", error);
     } finally {
