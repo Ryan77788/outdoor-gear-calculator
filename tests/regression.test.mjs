@@ -152,6 +152,7 @@ test("product catalog exposes future-ready commerce metadata", () => {
   const productIds = [];
   const supportedActivitySlugs = ["hiking", "desert-hiking", "skiing", "camping", "fishing", "kayaking"];
   const allowedCommerceHosts = ["amazon.com", "rei.com", "decathlon.com"];
+  const supportedAffiliateProviders = ["amazon", "decathlon", "backcountry", "evo", "basspro", "none"];
 
   for (const catalog of Object.values(products.productCatalog)) {
     for (const product of catalog) {
@@ -169,6 +170,11 @@ test("product catalog exposes future-ready commerce metadata", () => {
         "weather",
         "affiliate",
         "description",
+        "affiliateProvider",
+        "affiliateUrl",
+        "merchant",
+        "sourceUrl",
+        "isAffiliateReady",
       ]) {
         assert.ok(product[field] !== undefined, `${product.id} should include ${field}`);
       }
@@ -179,6 +185,12 @@ test("product catalog exposes future-ready commerce metadata", () => {
       assert.ok(product.tags.length > 0, `${product.id} should include at least one tag`);
       assert.ok(["easy", "moderate", "technical"].includes(product.difficulty), `${product.id} should include difficulty`);
       assert.equal(product.affiliate, false, `${product.id} should default affiliate to false`);
+      assert.ok(supportedAffiliateProviders.includes(product.affiliateProvider), `${product.id} should include affiliate provider`);
+      assert.equal(product.affiliateUrl, "", `${product.id} should default affiliateUrl to an empty string`);
+      assert.equal(product.isAffiliateReady, false, `${product.id} should default isAffiliateReady to false`);
+      assert.equal(typeof product.merchant, "string", `${product.id} should include merchant display name`);
+      assert.ok(product.merchant.length > 0, `${product.id} should include merchant display name`);
+      assert.equal(product.sourceUrl, product.buyUrl, `${product.id} should keep sourceUrl aligned with buyUrl`);
       assert.equal(typeof product.description, "string", `${product.id} should include a description`);
       assert.ok(product.description.length >= 40, `${product.id} should include a realistic description`);
       assert.ok(
@@ -196,4 +208,33 @@ test("product catalog exposes future-ready commerce metadata", () => {
       `product activity should support ${slug}`,
     );
   }
+});
+
+test("product cards and click logging are affiliate-ready", () => {
+  const source = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
+  const sharedPlanSource = fs.readFileSync(path.join(rootDir, "src/app/plan/[id]/page.tsx"), "utf8");
+
+  assert.ok(
+    source.includes("product.affiliateUrl || product.sourceUrl || product.buyUrl"),
+    "product click should prefer affiliateUrl, then sourceUrl or buyUrl",
+  );
+
+  for (const field of [
+    "productId",
+    "productName",
+    "brand",
+    "merchant",
+    "affiliateProvider",
+    "clickedUrl",
+    "activity",
+    "budget",
+    "timestamp",
+  ]) {
+    assert.ok(source.includes(field), `product_click payload should include ${field}`);
+  }
+
+  assert.ok(source.includes("Available on"), "English product card should display merchant");
+  assert.ok(source.includes("来自"), "Chinese product card should display merchant");
+  assert.ok(sharedPlanSource.includes("Available on"), "English shared product card should display merchant");
+  assert.ok(sharedPlanSource.includes("来自"), "Chinese shared product card should display merchant");
 });

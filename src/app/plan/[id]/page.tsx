@@ -354,8 +354,10 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
                       </p>
                       <p className="mt-2 text-xs leading-5 text-slate-400">
                         {language === "zh"
-                          ? "当前为搜索链接，具体商品以后人工确认。"
-                          : "Search result link, exact product may vary."}
+                          ? `来自 ${product.merchant || "Amazon"}`
+                          : `Available on ${product.merchant || "Amazon"}`}
+                        {" · "}
+                        {language === "zh" ? "当前为搜索链接，具体商品以后人工确认。" : "Search result link, exact product may vary."}
                       </p>
                     </div>
                   </div>

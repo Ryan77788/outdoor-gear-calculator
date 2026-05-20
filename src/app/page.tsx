@@ -592,7 +592,8 @@ export default function Home() {
   }
 
   async function handleProductClick(product: Product) {
-    const url = product.productUrl || productUrl;
+    const clickedUrl = product.affiliateUrl || product.sourceUrl || product.buyUrl || product.productUrl || productUrl;
+    const merchant = product.merchant || "Amazon";
 
     try {
       await fetch("/api/log", {
@@ -603,23 +604,29 @@ export default function Home() {
         body: JSON.stringify({
           type: "product_click",
           data: {
+            productId: product.id,
             productName: product.name,
+            brand: product.brand,
+            merchant,
+            affiliateProvider: product.affiliateProvider,
+            clickedUrl,
+            activity: form.activity,
+            budget: form.budget,
+            timestamp: new Date().toISOString(),
             unitPrice: product.unitPrice,
             quantity: product.quantity,
             unit: product.unit,
             subtotal: product.subtotal,
-            activity: form.activity,
             days: form.tripDays,
             weather: form.weather,
             people: form.peopleCount,
-            budget: form.budget,
           },
         }),
       });
     } catch (error) {
       console.error("Failed to log product click:", error);
     } finally {
-      window.open(url, "_blank");
+      window.open(clickedUrl, "_blank");
     }
   }
 
@@ -1090,8 +1097,10 @@ export default function Home() {
                   </p>
                   <p className="mt-2 text-xs leading-5 text-slate-400">
                     {language === "zh"
-                      ? "当前为搜索链接，具体商品以后人工确认。"
-                      : "Search result link, exact product may vary."}
+                      ? `来自 ${product.merchant || "Amazon"}`
+                      : `Available on ${product.merchant || "Amazon"}`}
+                    {" · "}
+                    {language === "zh" ? "当前为搜索链接，具体商品以后人工确认。" : "Search result link, exact product may vary."}
                   </p>
 
                   <button

@@ -25,6 +25,7 @@ export type ActivitySlug = "hiking" | "desert-hiking" | "skiing" | "camping" | "
 export type ProductActivity = Activity | ActivitySlug;
 export type Currency = "CNY";
 export type ProductDifficulty = "easy" | "moderate" | "technical";
+export type AffiliateProvider = "amazon" | "decathlon" | "backcountry" | "evo" | "basspro" | "none";
 export type GearCategory =
   | "shoes"
   | "shellJacket"
@@ -82,6 +83,11 @@ export type ProductTemplate = {
   tags: string[];
   difficulty: ProductDifficulty;
   affiliate: boolean;
+  affiliateProvider: AffiliateProvider;
+  affiliateUrl: string;
+  merchant: string;
+  sourceUrl: string;
+  isAffiliateReady: boolean;
   description: string;
   level: ProductLevel;
   priority: ProductPriority;
@@ -256,18 +262,25 @@ const categoryZhByGearCategory: Record<GearCategory, string> = {
 type ProductInput = Omit<
   ProductTemplate,
   | "affiliate"
+  | "affiliateProvider"
+  | "affiliateUrl"
   | "buyUrl"
   | "currency"
   | "description"
   | "difficulty"
   | "image"
   | "imageStatus"
+  | "isAffiliateReady"
+  | "merchant"
   | "rating"
+  | "sourceUrl"
   | "tags"
   | "category"
   | "categoryEn"
 > & {
   affiliate?: boolean;
+  affiliateProvider?: AffiliateProvider;
+  affiliateUrl?: string;
   category?: string;
   categoryEn?: string;
   currency?: Currency;
@@ -275,7 +288,10 @@ type ProductInput = Omit<
   difficulty?: ProductDifficulty;
   image?: string;
   imageStatus?: ImageStatus;
+  isAffiliateReady?: boolean;
+  merchant?: string;
   rating?: 4.2 | 4.5 | 4.8;
+  sourceUrl?: string;
   tags?: string[];
 };
 
@@ -357,10 +373,21 @@ function getCommercePlatform(product: ProductInput): CommercePlatform {
   return "amazon";
 }
 
-function makeBuyUrl(product: ProductInput) {
-  const query = `${product.brand} ${product.nameEn ?? product.name}`;
+function getAffiliateProvider(platform: CommercePlatform): AffiliateProvider {
+  if (platform === "rei") return "none";
+  return platform;
+}
 
-  return searchUrl(getCommercePlatform(product), query);
+function getMerchant(platform: CommercePlatform) {
+  switch (platform) {
+    case "decathlon":
+      return "Decathlon";
+    case "rei":
+      return "REI";
+    case "amazon":
+    default:
+      return "Amazon";
+  }
 }
 
 const activitySlugByActivity: Partial<Record<Activity, ActivitySlug>> = {
@@ -459,10 +486,15 @@ function getProductDescription(product: ProductInput) {
 }
 
 function p(product: ProductInput): ProductTemplate {
+  const platform = getCommercePlatform(product);
+  const sourceUrl = product.sourceUrl ?? searchUrl(platform, `${product.brand} ${product.nameEn ?? product.name}`);
+
   return {
     ...product,
     activity: expandActivities(product.activity),
     affiliate: product.affiliate ?? false,
+    affiliateProvider: product.affiliateProvider ?? getAffiliateProvider(platform),
+    affiliateUrl: product.affiliateUrl ?? "",
     category: product.category ?? categoryZhByGearCategory[product.gearCategory],
     categoryEn: product.categoryEn ?? categoryEnByGearCategory[product.gearCategory],
     currency: product.currency ?? "CNY",
@@ -470,9 +502,12 @@ function p(product: ProductInput): ProductTemplate {
     difficulty: getProductDifficulty(product),
     image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
+    isAffiliateReady: product.isAffiliateReady ?? false,
+    merchant: product.merchant ?? getMerchant(platform),
     rating: getProductRating(product),
+    sourceUrl,
     tags: getProductTags(product),
-    buyUrl: makeBuyUrl(product),
+    buyUrl: sourceUrl,
   };
 }
 
