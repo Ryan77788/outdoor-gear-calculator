@@ -11,6 +11,11 @@ const fallbackActivityBackground: ActivityBackground = {
   alt: "Outdoor trail and mountain landscape",
 };
 
+const neutralShareCardBackground: ActivityBackground = {
+  image: "/neutral-outdoor.jpg",
+  alt: "Neutral outdoor landscape",
+};
+
 export const activityBackgrounds: Record<Activity, ActivityBackground> = {
   登山: { image: "/share-hiking.jpg", alt: "Mountain hiking landscape" },
   徒步: { image: "/share-hiking.jpg", alt: "Hiking trail landscape" },
@@ -41,6 +46,14 @@ export const activityHeroImagesBySlug: Record<string, string> = Object.fromEntri
 );
 
 const activityBackgroundAliases: Record<string, Activity> = {
+  hiking: "徒步",
+  camping: "露营",
+  fishing: "钓鱼",
+  skiing: "滑雪",
+  roadtrip: "自驾游",
+  "road trip": "自驾游",
+  "self-driving": "自驾游",
+  "self driving": "自驾游",
   "trail running": "越野跑",
   "trail-running": "越野跑",
   backpacking: "重装徒步",
@@ -67,10 +80,35 @@ function resolveActivity(activity: Activity | string) {
   return activityBackgroundAliases[normalizeActivityKey(activity)];
 }
 
+const shareCardBackgrounds: Partial<Record<Activity, ActivityBackground>> = {
+  登山: { image: "/share-hiking.jpg", alt: "Premium mountain hiking landscape" },
+  徒步: { image: "/share-hiking.jpg", alt: "Premium hiking landscape" },
+  露营: { image: "/share-camping.jpg", alt: "Forest campsite outdoor photography" },
+  滑雪: { image: "/share-skiing.jpg", alt: "Snow mountain skiing photography" },
+  钓鱼: { image: "/fishing-hero.jpg", alt: "Lake fishing outdoor photography" },
+  自驾游: { image: "/share-roadtrip.jpg", alt: "Outdoor road trip landscape" },
+  攀岩: { image: "/activity/climbing.jpg", alt: "Rock climbing wall photography" },
+  皮划艇: { image: "/activity/kayaking.jpg", alt: "Kayaking on a lake photography" },
+  单板滑雪: { image: "/activity/snowboarding.jpg", alt: "Snowboarding on a mountain slope" },
+  沙漠徒步: { image: "/activity/desert-hiking.jpg", alt: "Desert hiking photography" },
+  冬季露营: { image: "/activity/winter-camping.jpg", alt: "Winter campsite photography" },
+  海边露营: { image: "/activity/beach-camping.jpg", alt: "Coastal campsite photography" },
+  重装徒步: { image: "/activity/backpacking.jpg", alt: "Backpacking trail photography" },
+  越野跑: { image: "/activity/trail-running.jpg", alt: "Trail running outdoor photography" },
+};
+
 export function getActivityBackground(activity: Activity | string) {
   const resolvedActivity = resolveActivity(activity);
 
   return resolvedActivity ? activityBackgrounds[resolvedActivity] : fallbackActivityBackground;
+}
+
+export function getShareCardBackground(activity: Activity | string) {
+  const resolvedActivity = resolveActivity(activity);
+
+  if (!resolvedActivity) return neutralShareCardBackground;
+
+  return shareCardBackgrounds[resolvedActivity] ?? neutralShareCardBackground;
 }
 
 export function getActivityBackgroundBySlug(slug: string) {
@@ -86,5 +124,5 @@ export function getSeoActivityImage(activity: Activity) {
 }
 
 export function getShareCardBackgroundImage(activity: Activity) {
-  return getActivityBackground(activity).image;
+  return getShareCardBackground(activity).image;
 }

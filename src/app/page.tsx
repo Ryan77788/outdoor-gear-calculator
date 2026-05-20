@@ -38,7 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getActivityBackground } from "@/lib/activity-backgrounds";
+import { getActivityBackground, getShareCardBackground } from "@/lib/activity-backgrounds";
 
 type IconName = RiskIconName;
 
@@ -167,6 +167,10 @@ const shareCoreCategories = new Set<GearCategory>([
   "goggles",
   "chair",
   "power",
+  "firstAid",
+  "vehicleTool",
+  "repair",
+  "tableChair",
 ]);
 
 const shareMustShowCategories = new Set<GearCategory>([
@@ -177,6 +181,9 @@ const shareMustShowCategories = new Set<GearCategory>([
   "tent",
   "sleepingBag",
   "shoes",
+  "power",
+  "firstAid",
+  "vehicleTool",
 ]);
 
 const shareSafetyCategories = new Set<GearCategory>([
@@ -201,6 +208,14 @@ const shareLowSignalCategories = new Set<GearCategory>([
   "towel",
   "consumable",
 ]);
+
+const roadTripPriorityCategories = new Set<GearCategory>(["power", "firstAid", "vehicleTool", "cooler", "tableChair", "repair"]);
+
+const premiumShareTitleByTier: Record<GearTier, string> = {
+  entry: "Entry Setup",
+  mid: "Mid Outdoor Setup",
+  premium: "Pro Expedition Setup",
+};
 
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
   const riskScore =
@@ -230,7 +245,7 @@ function preloadImage(src: string) {
   });
 }
 
-function getShareProductScore(product: Product) {
+function getShareProductScore(product: Product, activity?: Activity) {
   const normalizedText = `${product.name} ${product.nameEn ?? ""} ${product.category} ${product.categoryEn ?? ""}`.toLowerCase();
   const namePenalty = /patch|disposable|water|food|towel|snack|bar|heat pack|暖贴|贴|饮用水|食物|毛巾|能量/.test(
     normalizedText,
@@ -244,20 +259,21 @@ function getShareProductScore(product: Product) {
     : shareSafetyCategories.has(product.gearCategory)
       ? 2600
       : 0;
+  const activityScore = activity === "自驾游" && roadTripPriorityCategories.has(product.gearCategory) ? 18000 : 0;
   const consumablePenalty = product.gearType === "consumable" || shareLowSignalCategories.has(product.gearCategory) ? 24000 : 0;
   const budgetWeightScore = product.budgetWeight === "high" ? 1200 : product.budgetWeight === "medium" ? 500 : 0;
 
-  return mustShowScore + priorityScore + categoryScore + budgetWeightScore + product.subtotal - consumablePenalty - namePenalty;
+  return activityScore + mustShowScore + priorityScore + categoryScore + budgetWeightScore + product.subtotal - consumablePenalty - namePenalty;
 }
 
-function getShareGearHighlights(products: Product[]) {
+function getShareGearHighlights(products: Product[], activity?: Activity) {
   const dedupedByName = Array.from(
     products
       .reduce((map, product) => {
         const key = (product.nameEn ?? product.name).trim().toLowerCase();
         const current = map.get(key);
 
-        if (!current || getShareProductScore(product) > getShareProductScore(current)) {
+        if (!current || getShareProductScore(product, activity) > getShareProductScore(current, activity)) {
           map.set(key, product);
         }
 
@@ -265,7 +281,7 @@ function getShareGearHighlights(products: Product[]) {
       }, new Map<string, Product>())
       .values(),
   );
-  const sortedProducts = [...dedupedByName].sort((a, b) => getShareProductScore(b) - getShareProductScore(a));
+  const sortedProducts = [...dedupedByName].sort((a, b) => getShareProductScore(b, activity) - getShareProductScore(a, activity));
   const primaryProducts = sortedProducts.filter(
     (product) =>
       product.priority === "core" ||
@@ -278,23 +294,53 @@ function getShareGearHighlights(products: Product[]) {
   return highlights.length >= 4 ? highlights : sortedProducts.slice(0, Math.min(5, sortedProducts.length));
 }
 
-function getBudgetBreakdown(products: Product[]) {
-  const total = Math.max(1, products.reduce((sum, product) => sum + product.subtotal, 0));
-  const core = products
-    .filter((product) => product.priority === "core" || shareCoreCategories.has(product.gearCategory))
-    .reduce((sum, product) => sum + product.subtotal, 0);
-  const consumables = products
-    .filter((product) => product.gearType === "consumable" || shareLowSignalCategories.has(product.gearCategory))
-    .reduce((sum, product) => sum + product.subtotal, 0);
-  const safety = products
-    .filter((product) => shareSafetyCategories.has(product.gearCategory))
-    .reduce((sum, product) => sum + product.subtotal, 0);
+function getShareRecommendationReason(activity: Activity, tripDays: TripDays, peopleCount: number, language: Language) {
+  if (language === "zh") {
+    if (activity === "自驾游") return `适合 ${peopleCount} 人${tripDays}轻量化自驾与营地活动。`;
+    if (activity === "沙漠徒步") return `适合高温、强日照和补水压力更高的${tripDays}路线。`;
+    if (activity === "露营" || activity === "冬季露营" || activity === "海边露营") return `围绕睡眠、烹饪和营地安全构建的 ${peopleCount} 人营地方案。`;
+    if (activity === "滑雪" || activity === "单板滑雪") return `优先覆盖防护、保暖和雪场核心装备的滑雪日方案。`;
+    if (activity === "钓鱼") return `适合湖边等待、收纳和保温需求兼顾的钓鱼装备组合。`;
+    if (activity === "皮划艇") return `兼顾防水收纳、防晒和水上安全的皮划艇方案。`;
+    if (activity === "攀岩") return `突出头部防护、抓握和路线安全的攀岩装备组合。`;
+    return `适合 ${peopleCount} 人${tripDays}户外出行的核心装备组合。`;
+  }
 
-  return {
-    consumables: Math.round((consumables / total) * 100),
-    core: Math.round((core / total) * 100),
-    safety: Math.round((safety / total) * 100),
-  };
+  if (activity === "自驾游") return `Built for ${peopleCount} people on a ${tripDays} road trip with camp-ready essentials.`;
+  if (activity === "沙漠徒步") return `Prepared for heat, sun exposure, hydration, and long exposed desert routes.`;
+  if (activity === "露营" || activity === "冬季露营" || activity === "海边露营") return `A camp-ready setup built around sleep, cooking, comfort, and safety.`;
+  if (activity === "滑雪" || activity === "单板滑雪") return `A snow-day setup focused on protection, warmth, and resort essentials.`;
+  if (activity === "钓鱼") return `A lake fishing kit balancing tackle, cooling, shade, and waiting comfort.`;
+  if (activity === "皮划艇") return `A kayaking setup focused on dry storage, sun protection, and on-water safety.`;
+  if (activity === "攀岩") return `A climbing kit focused on head protection, grip, and route safety.`;
+  return `A practical core gear setup for ${peopleCount} people and a ${tripDays} outdoor plan.`;
+}
+
+function getShareFeatureTags(products: Product[], weather: Weather, tripDays: TripDays, language: Language) {
+  const tags = new Set<string>();
+  const hasWaterproof = products.some((product) => product.tags.includes("waterproof") || product.weather.includes("雨天"));
+  const hasLightweight = products.some((product) => product.tags.includes("lightweight") || product.gearCategory === "backpack");
+  const hasWinter = weather === "寒冷" || products.some((product) => product.tags.includes("winter"));
+  const hasSafety = products.some((product) => product.priority === "core" || shareSafetyCategories.has(product.gearCategory));
+  const isLongTrip = tripDays === "4天以上";
+
+  if (language === "zh") {
+    if (hasWaterproof) tags.add("防水");
+    if (hasLightweight) tags.add("轻量化");
+    if (hasWinter) tags.add("抗寒");
+    if (hasSafety) tags.add("安全优先");
+    if (isLongTrip) tags.add("长线准备");
+    if (tags.size < 3) tags.add("耐用");
+  } else {
+    if (hasWaterproof) tags.add("Waterproof");
+    if (hasLightweight) tags.add("Lightweight");
+    if (hasWinter) tags.add("Cold Resistant");
+    if (hasSafety) tags.add("Safety Focused");
+    if (isLongTrip) tags.add("Long Trip Ready");
+    if (tags.size < 3) tags.add("Durable");
+  }
+
+  return [...tags].slice(0, 5);
 }
 
 export default function Home() {
@@ -361,40 +407,53 @@ export default function Home() {
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
   const displayValue = (value: string) => localizeValue(value, language);
   const shareRiskLevel = getShareRiskLevel(risks, form.weather, form.tripDays, language);
-  const shareGearHighlights = useMemo(() => getShareGearHighlights(productPlan.selectedProducts), [productPlan.selectedProducts]);
-  const shareBudgetBreakdown = useMemo(() => getBudgetBreakdown(productPlan.selectedProducts), [productPlan.selectedProducts]);
+  const shareGearHighlights = useMemo(() => getShareGearHighlights(productPlan.selectedProducts, form.activity), [productPlan.selectedProducts, form.activity]);
+  const shareFeatureTags = useMemo(
+    () => getShareFeatureTags(productPlan.selectedProducts, form.weather, form.tripDays, language),
+    [productPlan.selectedProducts, form.weather, form.tripDays, language],
+  );
+  const shareRecommendationReason = getShareRecommendationReason(form.activity, form.tripDays, form.peopleCount, language);
+  const shareRemainingBudget = form.budget - productPlan.totalPrice;
+  const shareCardBackground = getShareCardBackground(form.activity).image;
+  const shareTierTitle = premiumShareTitleByTier[gearTier];
   const shareLabels =
     language === "zh"
       ? {
           activity: "活动",
           budget: "预算",
-          budgetBreakdown: "预算分布",
-          consumables: "消耗品",
-          coreEquipment: "核心装备",
+          category: "分类",
+          features: "核心特点",
           gearHighlights: "推荐装备亮点",
           gearTier: "装备等级",
+          quantity: "数量",
+          reason: "推荐理由",
+          remaining: "预算剩余",
           people: "人数",
           risk: "风险等级",
           slogan: "Plan smarter. Pack lighter. Go further.",
-          safetyGear: "安全装备",
+          subtotal: "小计",
           total: "推荐总价",
           tripDays: "行程",
+          unitPrice: "单价",
           weather: "天气",
         }
       : {
           activity: "Activity",
           budget: "Budget",
-          budgetBreakdown: "Budget Breakdown",
-          consumables: "Consumables",
-          coreEquipment: "Core gear",
+          category: "Category",
+          features: "Core Features",
           gearHighlights: "Recommended Gear Highlights",
           gearTier: "Gear Tier",
+          quantity: "Qty",
+          reason: "Why This Setup",
+          remaining: "Budget Left",
           people: "People",
           risk: "Risk level",
           slogan: "Plan smarter. Pack lighter. Go further.",
-          safetyGear: "Safety gear",
+          subtotal: "Subtotal",
           total: "Recommended total",
           tripDays: "Trip days",
+          unitPrice: "Unit price",
           weather: "Weather",
         };
 
@@ -593,7 +652,7 @@ export default function Home() {
 
     try {
       const exportElement = exportRef.current;
-      const backgroundUrl = getActivityBackground(form.activity).image;
+      const backgroundUrl = getShareCardBackground(form.activity).image;
 
       console.log("share-card-background", form.activity, backgroundUrl);
 
@@ -1194,7 +1253,7 @@ export default function Home() {
           ref={exportRef}
           style={{
             background: "#0f1f19",
-            backgroundImage: `linear-gradient(115deg, rgba(5, 20, 16, 0.94) 0%, rgba(5, 20, 16, 0.78) 42%, rgba(5, 20, 16, 0.34) 100%), linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.05)), url("${getActivityBackground(form.activity).image}")`,
+            backgroundImage: `linear-gradient(115deg, rgba(4, 11, 18, 0.96) 0%, rgba(4, 11, 18, 0.82) 44%, rgba(4, 11, 18, 0.46) 100%), linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.08)), url("${shareCardBackground}")`,
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             backgroundSize: "cover",
@@ -1293,10 +1352,10 @@ export default function Home() {
             <div style={{ display: "grid", flex: 1, gap: "24px", gridTemplateColumns: "1.38fr 0.62fr", minHeight: 0 }}>
               <section
                 style={{
-                  background: "rgba(255, 255, 255, 0.14)",
-                  border: "1px solid rgba(255, 255, 255, 0.28)",
+                  background: "rgba(8, 13, 20, 0.76)",
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
                   borderRadius: "34px",
-                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.28)",
+                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.42)",
                   padding: "28px",
                 }}
               >
@@ -1348,8 +1407,8 @@ export default function Home() {
                         color: "#0f172a",
                         display: "grid",
                         gap: "14px",
-                        gridTemplateColumns: "40px 1fr 86px 132px",
-                        minHeight: "58px",
+                        gridTemplateColumns: "38px 1.05fr 0.82fr 72px 106px 114px",
+                        minHeight: "64px",
                         padding: "10px 14px",
                       }}
                     >
@@ -1374,11 +1433,17 @@ export default function Home() {
                           {localizeProductName(product, language)}
                         </p>
                         <p style={{ color: "#64748b", fontSize: "12px", fontWeight: 800, margin: "5px 0 0" }}>
-                          {localizeProductCategory(product, language)}
+                          {product.brand}
                         </p>
                       </div>
+                      <p style={{ color: "#334155", fontSize: "13px", fontWeight: 900, lineHeight: 1.2, margin: 0 }}>
+                        {shareLabels.category}: {localizeProductCategory(product, language)}
+                      </p>
                       <p style={{ color: "#475569", fontSize: "16px", fontWeight: 900, margin: 0, textAlign: "right" }}>
-                        x{product.quantity}
+                        {shareLabels.quantity} x{product.quantity}
+                      </p>
+                      <p style={{ color: "#475569", fontSize: "15px", fontWeight: 900, margin: 0, textAlign: "right" }}>
+                        {formatMoney(product.unitPrice)}
                       </p>
                       <p style={{ color: "#047857", fontSize: "20px", fontWeight: 900, margin: 0, textAlign: "right" }}>
                         {formatMoney(product.subtotal)}
@@ -1390,8 +1455,8 @@ export default function Home() {
 
               <aside
                 style={{
-                  background: "rgba(15, 23, 42, 0.58)",
-                  border: "1px solid rgba(255, 255, 255, 0.24)",
+                  background: "rgba(6, 12, 20, 0.82)",
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
                   borderRadius: "34px",
                   boxShadow: "0 28px 80px rgba(0, 0, 0, 0.24)",
                   display: "flex",
@@ -1405,7 +1470,7 @@ export default function Home() {
                     {shareLabels.gearTier}
                   </p>
                   <p style={{ color: gearTierStyle.shareColor, fontSize: "31px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
-                    {gearTierMeta.shareTitle}
+                    {shareTierTitle}
                   </p>
                   <p style={{ color: "rgba(255, 255, 255, 0.72)", fontSize: "13px", fontWeight: 800, lineHeight: 1.45, margin: "10px 0 0" }}>
                     {gearTierMeta.description}
@@ -1414,46 +1479,62 @@ export default function Home() {
 
                 <div>
                   <p style={{ color: "#bbf7d0", fontSize: "14px", fontWeight: 900, margin: "0 0 8px" }}>
-                    {shareLabels.budget}
+                    {shareLabels.reason}
                   </p>
-                  <p style={{ color: "#ffffff", fontSize: "30px", fontWeight: 900, lineHeight: 1, margin: 0 }}>
-                    {formatMoney(form.budget)}
+                  <p style={{ color: "rgba(255, 255, 255, 0.86)", fontSize: "18px", fontWeight: 900, lineHeight: 1.38, margin: 0 }}>
+                    {shareRecommendationReason}
                   </p>
                 </div>
 
                 <div
                   style={{
-                    background: "rgba(255, 255, 255, 0.12)",
+                    background: "rgba(255, 255, 255, 0.09)",
                     border: "1px solid rgba(255, 255, 255, 0.2)",
                     borderRadius: "24px",
                     padding: "20px",
                   }}
                 >
                   <p style={{ color: "#ffffff", fontSize: "22px", fontWeight: 900, margin: "0 0 18px" }}>
-                    {shareLabels.budgetBreakdown}
+                    {shareLabels.features}
                   </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    {shareFeatureTags.map((tag) => (
+                      <span
+                        key={tag}
+                        style={{
+                          background: "rgba(236, 253, 245, 0.92)",
+                          borderRadius: "999px",
+                          color: "#064e3b",
+                          fontSize: "14px",
+                          fontWeight: 900,
+                          padding: "9px 12px",
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.09)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    borderRadius: "24px",
+                    display: "grid",
+                    gap: "14px",
+                    padding: "20px",
+                  }}
+                >
                   {[
-                    [shareLabels.coreEquipment, shareBudgetBreakdown.core, "#34d399"],
-                    [shareLabels.consumables, shareBudgetBreakdown.consumables, "#fbbf24"],
-                    [shareLabels.safetyGear, shareBudgetBreakdown.safety, "#93c5fd"],
-                  ].map(([label, value, color]) => (
-                    <div key={String(label)} style={{ marginBottom: "15px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "7px" }}>
-                        <span style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "14px", fontWeight: 900 }}>
-                          {label}
-                        </span>
-                        <span style={{ color: "#ffffff", fontSize: "14px", fontWeight: 900 }}>{value}%</span>
-                      </div>
-                      <div style={{ background: "rgba(255, 255, 255, 0.16)", borderRadius: "999px", height: "10px", overflow: "hidden" }}>
-                        <div
-                          style={{
-                            background: String(color),
-                            borderRadius: "999px",
-                            height: "10px",
-                            width: `${value}%`,
-                          }}
-                        />
-                      </div>
+                    [shareLabels.total, formatMoney(productPlan.totalPrice)],
+                    [shareLabels.remaining, formatMoney(shareRemainingBudget)],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+                      <span style={{ color: "rgba(255, 255, 255, 0.72)", fontSize: "14px", fontWeight: 900 }}>
+                        {label}
+                      </span>
+                      <span style={{ color: "#ffffff", fontSize: "19px", fontWeight: 900 }}>{value}</span>
                     </div>
                   ))}
                 </div>

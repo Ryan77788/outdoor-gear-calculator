@@ -78,14 +78,37 @@ test("every activity can generate a complete plan without duplicate recommended 
 test("share backgrounds resolve to existing activity-specific assets", () => {
   for (const activity of products.activityOptions) {
     const background = backgrounds.getActivityBackground(activity).image;
+    const shareBackground = backgrounds.getShareCardBackground(activity).image;
 
     assert.ok(background.startsWith("/"), `${activity} background should be a public path`);
     assert.ok(fs.existsSync(path.join(rootDir, "public", background)), `${activity} background file should exist`);
+    assert.ok(shareBackground.startsWith("/"), `${activity} share background should be a public path`);
+    assert.ok(fs.existsSync(path.join(rootDir, "public", shareBackground)), `${activity} share background file should exist`);
   }
 
   assert.equal(backgrounds.getActivityBackground("沙漠徒步").image, "/activity/desert-hiking.jpg");
   assert.equal(backgrounds.getActivityBackground("Desert Hiking").image, "/activity/desert-hiking.jpg");
   assert.equal(backgrounds.getActivityBackground("desert-hiking").image, "/activity/desert-hiking.jpg");
+  assert.equal(backgrounds.getShareCardBackground("沙漠徒步").image, "/activity/desert-hiking.jpg");
+  assert.equal(backgrounds.getShareCardBackground("roadtrip").image, "/share-roadtrip.jpg");
+  assert.equal(backgrounds.getShareCardBackground("self-driving").image, "/share-roadtrip.jpg");
+  assert.equal(backgrounds.getShareCardBackground("unknown-activity").image, "/neutral-outdoor.jpg");
+  assert.notEqual(backgrounds.getShareCardBackground("unknown-activity").image, "/share-hiking.jpg");
+});
+
+test("share image poster uses real recommendation details instead of fake budget bars", () => {
+  const source = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
+
+  assert.ok(source.includes("getShareCardBackground"), "share image should use dedicated share background mapping");
+  assert.ok(source.includes("getShareFeatureTags"), "share image should render real feature tags");
+  assert.ok(source.includes("getShareRecommendationReason"), "share image should render a recommendation reason");
+  assert.ok(source.includes("brand"), "share image product rows should include product brand");
+  assert.ok(source.includes("unitPrice"), "share image product rows should include unit price");
+  assert.ok(source.includes("subtotal"), "share image product rows should include subtotal");
+  assert.equal(source.includes("shareBudgetBreakdown"), false, "share image should not use fake budget percentage bars");
+  assert.equal(source.includes("coreEquipment"), false, "share image should not show fake core equipment percentage");
+  assert.equal(source.includes("consumables"), false, "share image should not show fake consumables percentage");
+  assert.equal(source.includes("safetyGear"), false, "share image should not show fake safety gear percentage");
 });
 
 test("specialized activity background assets are not accidental duplicate placeholders", () => {
