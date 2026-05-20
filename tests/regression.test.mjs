@@ -250,8 +250,30 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
   const analyticsSource = fs.readFileSync(analyticsPagePath, "utf8");
   const analyticsApiSource = fs.readFileSync(analyticsApiPath, "utf8");
 
-  for (const token of ["ADMIN_PASSWORD", "localStorage", "type=\"password\"", "Incorrect password"]) {
+  for (const token of ["ADMIN_PASSWORD", "localStorage", "type=\"password\"", "密码错误"]) {
     assert.ok(analyticsSource.includes(token), `analytics page should include password gate token ${token}`);
+  }
+
+  for (const token of [
+    "数据分析后台",
+    "总生成次数",
+    "商品点击次数",
+    "保存方案次数",
+    "热门活动",
+    "热门商品",
+    "热门商家",
+    "预算分布",
+    "活动类型",
+    "商品名称",
+    "商家",
+    "次数",
+    "预算区间",
+    "数据来自 MongoDB logs 集合",
+    "用于观察用户生成方案、点击商品和保存方案行为",
+    "刷新数据",
+    "暂无数据，先回首页生成一次方案。",
+  ]) {
+    assert.ok(analyticsSource.includes(token), `analytics page should include Chinese admin copy ${token}`);
   }
 
   assert.equal(analyticsSource.includes("clientPromise"), false, "analytics page should not fetch MongoDB before password validation");
