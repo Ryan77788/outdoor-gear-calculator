@@ -507,6 +507,20 @@ export default function Home() {
     }
   }
 
+  async function logUserBehavior(type: string, data: Record<string, unknown>) {
+    try {
+      await fetch("/api/log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type, data }),
+      });
+    } catch (error) {
+      console.error(`Failed to log ${type}:`, error);
+    }
+  }
+
   function handleLoadPlan(plan: SavedPlan) {
     setForm({
       activity: plan.activity,
@@ -516,6 +530,14 @@ export default function Home() {
       budget: plan.budget,
     });
     setShowResult(true);
+    void logUserBehavior("reload_plan", {
+      planId: plan._id,
+      activity: plan.activity,
+      weather: plan.weather,
+      tripDays: plan.tripDays,
+      peopleCount: plan.peopleCount,
+      budget: plan.budget,
+    });
   }
 
   async function handleDeletePlan(planId: string) {
@@ -541,23 +563,14 @@ export default function Home() {
   async function handleCopyShareLink(planId: string) {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}`);
-      await fetch("/api/log", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "share_link_copy",
-          data: {
-            planId,
-            activity: form.activity,
-            days: form.tripDays,
-            weather: form.weather,
-            people: form.peopleCount,
-            budget: form.budget,
-            totalPrice: productPlan.totalPrice,
-          },
-        }),
+      await logUserBehavior("share_link_copy", {
+        planId,
+        activity: form.activity,
+        weather: form.weather,
+        tripDays: form.tripDays,
+        peopleCount: form.peopleCount,
+        budget: form.budget,
+        language,
       });
       setCopiedPlanId(planId);
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
@@ -599,22 +612,14 @@ export default function Home() {
       link.download = "outdoor-ai-share-card.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
-      await fetch("/api/log", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "share_image",
-          data: {
-            activity: form.activity,
-            days: form.tripDays,
-            weather: form.weather,
-            people: form.peopleCount,
-            budget: form.budget,
-            totalPrice: productPlan.totalPrice,
-          },
-        }),
+      await logUserBehavior("share_image", {
+        activity: form.activity,
+        weather: form.weather,
+        tripDays: form.tripDays,
+        peopleCount: form.peopleCount,
+        budget: form.budget,
+        totalPrice: productPlan.totalPrice,
+        language,
       });
     } catch (error) {
       console.error("Failed to generate share image:", error);

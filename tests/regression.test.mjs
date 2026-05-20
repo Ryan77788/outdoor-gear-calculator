@@ -323,7 +323,21 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
   assert.ok(plansRouteSource.includes('collection("logs")'), "saved_plan events should go to MongoDB logs collection");
 
   const homeSource = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
+  const planPageSource = fs.readFileSync(path.join(rootDir, "src/app/plan/[id]/page.tsx"), "utf8");
+  const planOpenLoggerSource = fs.readFileSync(path.join(rootDir, "src/app/plan/[id]/PlanOpenLogger.tsx"), "utf8");
 
-  assert.ok(homeSource.includes('type: "share_image"'), "share image generation should write logs");
-  assert.ok(homeSource.includes('type: "share_link_copy"'), "share link copying should write logs");
+  assert.ok(homeSource.includes('"share_image"'), "share image generation should write logs");
+  assert.ok(homeSource.includes('"share_link_copy"'), "share link copying should write logs");
+  assert.ok(homeSource.includes('"reload_plan"'), "reloading a saved plan should write logs");
+  assert.ok(planPageSource.includes("PlanOpenLogger"), "shared plan page should include a plan open logger");
+  assert.ok(planOpenLoggerSource.includes('type: "plan_open"'), "shared plan page should write plan_open logs");
+
+  for (const field of ["activity", "weather", "tripDays", "peopleCount", "budget", "language"]) {
+    assert.ok(homeSource.includes(field), `share behavior logs should include ${field}`);
+  }
+
+  for (const field of ["planId", "activity", "weather", "tripDays", "peopleCount", "budget"]) {
+    assert.ok(planOpenLoggerSource.includes(field), `plan_open logs should include ${field}`);
+    assert.ok(homeSource.includes(field), `reload/share link logs should include ${field}`);
+  }
 });

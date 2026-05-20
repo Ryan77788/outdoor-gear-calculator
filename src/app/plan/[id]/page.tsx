@@ -26,6 +26,7 @@ import {
   type Language,
 } from "@/lib/i18n";
 import { getActivityHeroImage } from "@/lib/activity-backgrounds";
+import { PlanOpenLogger } from "./PlanOpenLogger";
 
 export const dynamic = "force-dynamic";
 const SAVED_PLANS_COLLECTION = "saved_plans";
@@ -202,6 +203,14 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <PlanOpenLogger
+        activity={plan.activity}
+        budget={plan.budget}
+        peopleCount={plan.peopleCount}
+        planId={plan._id}
+        tripDays={plan.tripDays}
+        weather={plan.weather}
+      />
       <LanguageSwitch id={id} language={language} />
       <section className="relative isolate overflow-hidden">
         <div
