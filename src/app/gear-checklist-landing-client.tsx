@@ -17,6 +17,19 @@ import {
 
 const LANGUAGE_STORAGE_KEY = "language";
 
+const activitySlugByActivity: Record<string, string> = {
+  徒步: "hiking",
+  登山: "hiking",
+  露营: "camping",
+  滑雪: "skiing",
+  单板滑雪: "skiing",
+  钓鱼: "fishing",
+  皮划艇: "kayaking",
+  沙漠徒步: "desert-hiking",
+  攀岩: "climbing",
+  自驾游: "roadtrip",
+};
+
 const guideLabels = {
   en: {
     analysis: "AI Recommendation Analysis",
@@ -134,7 +147,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   const tierMeta = getGearTierMeta(page.tier, language);
   const tierStyle = getGearTierStyle(page.tier);
   const heroImage = getActivityHeroImage(page.analysisContext.activity);
-  const plannerHref = language === "zh" ? "/?lang=zh" : "/?lang=en";
+  const activitySlug = activitySlugByActivity[page.analysisContext.activity] ?? page.slug;
+  const plannerHref = `/?activity=${activitySlug}&lang=${language}`;
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">

@@ -148,7 +148,15 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(guideClientSource.includes("new URLSearchParams(window.location.search).get(\"lang\")"), "guide pages should prefer URL lang");
   assert.ok(guideClientSource.includes("window.localStorage.getItem(LANGUAGE_STORAGE_KEY)"), "guide pages should read localStorage language");
   assert.ok(guideClientSource.includes('href={plannerHref}'), "guide planner button should preserve language");
-  assert.ok(guideClientSource.includes('"/?lang=zh"'), "Chinese guide planner link should return home with lang=zh");
+  assert.ok(guideClientSource.includes("`/?activity=${activitySlug}&lang=${language}`"), "guide planner link should return home with activity and lang");
+  assert.ok(guideClientSource.includes("activitySlugByActivity"), "guide planner links should include activity slug mapping");
+  assert.ok(guideClientSource.includes("activity="), "guide planner links should include activity query parameter");
+  assert.ok(guideClientSource.includes("fishing"), "guide planner mapping should support fishing");
+  assert.ok(guideClientSource.includes("roadtrip"), "guide planner mapping should support roadtrip");
+  assert.ok(source.includes("activityByUrlParam"), "home should map activity URL params to activities");
+  assert.ok(source.includes('urlParams.get("activity")'), "home should read activity search param");
+  assert.ok(source.includes("scrollIntoView"), "home should scroll to Gear Planner after activity param is applied");
+  assert.ok(source.includes('document.getElementById("gear-planner")'), "home should scroll to gear planner section");
   assert.ok(guideClientSource.includes("适合场景"), "guide pages should include Chinese scenarios label");
   assert.ok(guideClientSource.includes("核心装备清单"), "guide pages should include Chinese core gear label");
   assert.ok(guideClientSource.includes("风险提示"), "guide pages should include Chinese risk notes label");

@@ -294,6 +294,39 @@ const activityGuideCards = [
 
 const LANGUAGE_STORAGE_KEY = "language";
 
+const activityByUrlParam: Record<string, Activity> = {
+  backpacking: "重装徒步",
+  camping: "露营",
+  climbing: "攀岩",
+  "desert hiking": "沙漠徒步",
+  "desert-hiking": "沙漠徒步",
+  fishing: "钓鱼",
+  hiking: "徒步",
+  kayaking: "皮划艇",
+  mountaineering: "登山",
+  roadtrip: "自驾游",
+  "road-trip": "自驾游",
+  "road trip": "自驾游",
+  selfdriving: "自驾游",
+  "self-driving": "自驾游",
+  "self driving": "自驾游",
+  skiing: "滑雪",
+  snowboarding: "单板滑雪",
+  "trail-running": "越野跑",
+};
+
+function resolveActivityFromUrlParam(value: string | null): Activity | null {
+  if (!value) return null;
+
+  const decoded = decodeURIComponent(value).trim();
+
+  if (activityOptions.includes(decoded as Activity)) {
+    return decoded as Activity;
+  }
+
+  return activityByUrlParam[decoded.toLowerCase()] ?? null;
+}
+
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
   const riskScore =
     risks.length +
@@ -439,16 +472,22 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const urlLanguage = new URLSearchParams(window.location.search).get("lang");
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLanguage = urlParams.get("lang");
+    const urlActivity = resolveActivityFromUrlParam(urlParams.get("activity"));
     const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
 
     if (urlLanguage === "zh" || urlLanguage === "en") {
       setLanguage(urlLanguage);
-      return;
+    } else if (savedLanguage === "zh" || savedLanguage === "en") {
+      setLanguage(savedLanguage);
     }
 
-    if (savedLanguage === "zh" || savedLanguage === "en") {
-      setLanguage(savedLanguage);
+    if (urlActivity) {
+      setForm((current) => ({ ...current, activity: urlActivity }));
+      window.requestAnimationFrame(() => {
+        document.getElementById("gear-planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, []);
 
