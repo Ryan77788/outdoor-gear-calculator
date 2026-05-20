@@ -4,9 +4,11 @@ import type { Activity } from "@/data/products";
 import type { TripDays, Weather } from "@/lib/recommendation";
 import { getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
-import { getActivityHeroImage, getSeoActivityImage } from "@/lib/activity-backgrounds";
 
-type GearChecklistPage = {
+import { getActivityHeroImage, getSeoActivityImage } from "@/lib/activity-backgrounds";
+import { GearChecklistLandingClient } from "@/app/gear-checklist-landing-client";
+
+export type GearChecklistPage = {
   slug: string;
   title: string;
   description: string;
@@ -443,6 +445,8 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
 }
 
 export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
+  return <GearChecklistLandingClient page={page} />;
+
   const analysis = buildRecommendationAnalysis({ ...page.analysisContext, language: "en" });
   const tierMeta = getGearTierMeta(page.tier, "en");
   const tierStyle = getGearTierStyle(page.tier);
@@ -585,3 +589,5 @@ export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
     </main>
   );
 }
+
+

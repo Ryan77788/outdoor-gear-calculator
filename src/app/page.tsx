@@ -217,6 +217,83 @@ const premiumShareTitleByTier: Record<GearTier, string> = {
   premium: "Pro Expedition Setup",
 };
 
+const activityGuideCards = [
+  {
+    key: "hiking",
+    href: "/hiking-gear-checklist",
+    title: { en: "Hiking", zh: "徒步" },
+    description: {
+      en: "Trail essentials for layers, hydration, navigation, and safety margin.",
+      zh: "覆盖分层穿着、补水、导航和安全余量的徒步装备指南。",
+    },
+  },
+  {
+    key: "camping",
+    href: "/camping-gear-checklist",
+    title: { en: "Camping", zh: "露营" },
+    description: {
+      en: "Shelter, sleep, cooking, lighting, and campsite comfort planning.",
+      zh: "规划帐篷睡眠、炉具照明和营地舒适度。",
+    },
+  },
+  {
+    key: "skiing",
+    href: "/skiing-gear-checklist",
+    title: { en: "Skiing", zh: "滑雪" },
+    description: {
+      en: "Snow-day layers, protection, warmth, and resort essentials.",
+      zh: "整理雪场分层、防护、保暖和基础装备。",
+    },
+  },
+  {
+    key: "fishing",
+    href: "/fishing-gear-checklist",
+    title: { en: "Fishing", zh: "钓鱼" },
+    description: {
+      en: "Rod, tackle, shade, cooling, and waterside comfort essentials.",
+      zh: "覆盖鱼竿线组、防晒、保温和水边舒适装备。",
+    },
+  },
+  {
+    key: "kayaking",
+    href: "/kayaking",
+    title: { en: "Kayaking", zh: "皮划艇" },
+    description: {
+      en: "Dry storage, sun protection, hydration, and on-water safety.",
+      zh: "准备防水收纳、防晒补水和水上安全装备。",
+    },
+  },
+  {
+    key: "desert-hiking",
+    href: "/desert-hiking",
+    title: { en: "Desert Hiking", zh: "沙漠徒步" },
+    description: {
+      en: "Heat, sun, water capacity, electrolytes, and exposure planning.",
+      zh: "面向高温、强日照、补水和电解质管理。",
+    },
+  },
+  {
+    key: "climbing",
+    href: "/climbing",
+    title: { en: "Climbing", zh: "攀岩" },
+    description: {
+      en: "Helmet, footwear, lighting, gloves, and route safety basics.",
+      zh: "聚焦头盔、鞋、照明、手套和路线安全基础。",
+    },
+  },
+  {
+    key: "road-trip",
+    href: "/road-trip-gear-checklist",
+    title: { en: "Road Trip", zh: "自驾游" },
+    description: {
+      en: "Power, first aid, vehicle tools, cooling, and camp-ready gear.",
+      zh: "规划电源、急救、车载工具、保温和营地装备。",
+    },
+  },
+] as const;
+
+const LANGUAGE_STORAGE_KEY = "language";
+
 function getShareRiskLevel(risks: RiskBlock[], weather: Weather, tripDays: TripDays, language: Language) {
   const riskScore =
     risks.length +
@@ -361,6 +438,24 @@ export default function Home() {
     budget: 5000,
   });
 
+  useEffect(() => {
+    const urlLanguage = new URLSearchParams(window.location.search).get("lang");
+    const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+
+    if (urlLanguage === "zh" || urlLanguage === "en") {
+      setLanguage(urlLanguage);
+      return;
+    }
+
+    if (savedLanguage === "zh" || savedLanguage === "en") {
+      setLanguage(savedLanguage);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  }, [language]);
+
   const gearList = useMemo(
     () => buildGearList(form.activity, form.tripDays, form.weather, form.peopleCount, form.budget),
     [form.activity, form.tripDays, form.weather, form.peopleCount, form.budget],
@@ -455,6 +550,24 @@ export default function Home() {
           tripDays: "Trip days",
           unitPrice: "Unit price",
           weather: "Weather",
+        };
+  const siteNavLabels =
+    language === "zh"
+      ? {
+          planner: "装备规划",
+          guides: "活动指南",
+          saved: "已保存方案",
+          guidesTitle: "活动指南",
+          guidesDescription: "从不同户外活动切入，查看更完整的装备准备思路和风险提示。",
+          viewGuide: "查看指南",
+        }
+      : {
+          planner: "Gear Planner",
+          guides: "Activity Guides",
+          saved: "Saved Plans",
+          guidesTitle: "Activity Guides",
+          guidesDescription: "Explore focused gear checklists by activity, then come back to build your own plan.",
+          viewGuide: "View guide",
         };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
@@ -765,6 +878,22 @@ export default function Home() {
           className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.42),rgba(12,48,31,0.08)_50%,rgba(255,255,255,0.12)),linear-gradient(to_bottom,rgba(0,0,0,0.22),rgba(0,0,0,0.06)_45%,rgba(255,255,255,0.18))]"
         />
 
+        <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-6 pt-6 text-sm font-black text-white">
+          {[
+            { href: "#gear-planner", label: siteNavLabels.planner },
+            { href: "#activity-guides", label: siteNavLabels.guides },
+            { href: "#saved-plans", label: siteNavLabels.saved },
+          ].map((item) => (
+            <a
+              className="rounded-full border border-white/25 bg-white/14 px-4 py-2 shadow-sm backdrop-blur-xl transition hover:bg-white/22"
+              href={item.href}
+              key={item.href}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
         <div className="mx-auto flex min-h-[420px] max-w-6xl flex-col justify-center px-6 py-16">
           <p className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
             Outdoor Gear Planner
@@ -781,7 +910,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto -mt-12 max-w-6xl px-6">
+      <section className="mx-auto -mt-12 max-w-6xl scroll-mt-24 px-6" id="gear-planner">
         <div className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
           <div className="grid gap-5 lg:grid-cols-5">
             <label className="group block">
@@ -886,6 +1015,31 @@ export default function Home() {
               {t.generateGearList}
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl scroll-mt-24 px-6 py-10" id="activity-guides">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{siteNavLabels.guides}</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">{siteNavLabels.guidesTitle}</h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-slate-600">{siteNavLabels.guidesDescription}</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {activityGuideCards.map((guide) => (
+            <a
+              className="group flex min-h-44 flex-col rounded-2xl border border-white bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+              href={`${guide.href}?lang=${language}`}
+              key={guide.key}
+            >
+              <h3 className="text-lg font-black text-slate-950">{guide.title[language]}</h3>
+              <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{guide.description[language]}</p>
+              <span className="mt-4 inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800 ring-1 ring-emerald-100 transition group-hover:bg-emerald-100">
+                {siteNavLabels.viewGuide}
+              </span>
+            </a>
+          ))}
         </div>
       </section>
 
@@ -1563,7 +1717,7 @@ export default function Home() {
           </div>
         </div>
 
-        <section className="mx-auto max-w-6xl px-6 pb-10">
+        <section className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-10" id="saved-plans">
           <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 shadow-sm">

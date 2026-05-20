@@ -111,6 +111,50 @@ test("share image poster uses real recommendation details instead of fake budget
   assert.equal(source.includes("safetyGear"), false, "share image should not show fake safety gear percentage");
 });
 
+test("home page exposes site navigation and activity guide entries", () => {
+  const source = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
+  const guideClientSource = fs.readFileSync(path.join(rootDir, "src/app/gear-checklist-landing-client.tsx"), "utf8");
+
+  for (const token of [
+    "Gear Planner",
+    "Activity Guides",
+    "Saved Plans",
+    "装备规划",
+    "活动指南",
+    "已保存方案",
+    "activity-guides",
+    "saved-plans",
+    "View guide",
+    "查看指南",
+  ]) {
+    assert.ok(source.includes(token), `home page should include navigation or guide copy ${token}`);
+  }
+
+  for (const href of [
+    "/hiking-gear-checklist",
+    "/camping-gear-checklist",
+    "/skiing-gear-checklist",
+    "/fishing-gear-checklist",
+    "/kayaking",
+    "/desert-hiking",
+    "/climbing",
+    "/road-trip-gear-checklist",
+  ]) {
+    assert.ok(source.includes(`href: "${href}"`), `activity guide card should link to ${href}`);
+  }
+
+  assert.ok(source.includes('localStorage.setItem(LANGUAGE_STORAGE_KEY, language)'), "home language should persist to localStorage");
+  assert.ok(source.includes('href={`${guide.href}?lang=${language}`}'), "activity guide links should carry the current language");
+  assert.ok(guideClientSource.includes("new URLSearchParams(window.location.search).get(\"lang\")"), "guide pages should prefer URL lang");
+  assert.ok(guideClientSource.includes("window.localStorage.getItem(LANGUAGE_STORAGE_KEY)"), "guide pages should read localStorage language");
+  assert.ok(guideClientSource.includes('href={plannerHref}'), "guide planner button should preserve language");
+  assert.ok(guideClientSource.includes('"/?lang=zh"'), "Chinese guide planner link should return home with lang=zh");
+  assert.ok(guideClientSource.includes("适合场景"), "guide pages should include Chinese scenarios label");
+  assert.ok(guideClientSource.includes("核心装备清单"), "guide pages should include Chinese core gear label");
+  assert.ok(guideClientSource.includes("风险提示"), "guide pages should include Chinese risk notes label");
+  assert.ok(guideClientSource.includes("打开装备规划器"), "guide pages should include Chinese planner button");
+});
+
 test("specialized activity background assets are not accidental duplicate placeholders", () => {
   const imageNames = [
     "trail-running.jpg",
