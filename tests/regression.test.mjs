@@ -241,11 +241,20 @@ test("product cards and click logging are affiliate-ready", () => {
 
 test("admin analytics page reads behavior metrics from MongoDB logs", () => {
   const analyticsPagePath = path.join(rootDir, "src/app/admin/analytics/page.tsx");
+  const analyticsApiPath = path.join(rootDir, "src/app/api/admin/analytics/route.ts");
   const plansRouteSource = fs.readFileSync(path.join(rootDir, "src/app/api/plans/route.ts"), "utf8");
 
   assert.ok(fs.existsSync(analyticsPagePath), "admin analytics page should exist");
+  assert.ok(fs.existsSync(analyticsApiPath), "admin analytics API should exist");
 
   const analyticsSource = fs.readFileSync(analyticsPagePath, "utf8");
+  const analyticsApiSource = fs.readFileSync(analyticsApiPath, "utf8");
+
+  for (const token of ["ADMIN_PASSWORD", "localStorage", "type=\"password\"", "Incorrect password"]) {
+    assert.ok(analyticsSource.includes(token), `analytics page should include password gate token ${token}`);
+  }
+
+  assert.equal(analyticsSource.includes("clientPromise"), false, "analytics page should not fetch MongoDB before password validation");
 
   for (const token of [
     "logs",
@@ -260,9 +269,11 @@ test("admin analytics page reads behavior metrics from MongoDB logs", () => {
     "3000-8000",
     "8000+",
   ]) {
-    assert.ok(analyticsSource.includes(token), `analytics page should include ${token}`);
+    assert.ok(analyticsApiSource.includes(token), `analytics API should include ${token}`);
   }
 
+  assert.ok(analyticsApiSource.includes("process.env.ADMIN_PASSWORD"), "analytics API should validate ADMIN_PASSWORD");
+  assert.ok(analyticsApiSource.includes("401"), "analytics API should reject invalid passwords");
   assert.ok(plansRouteSource.includes('type: "saved_plan"'), "saving a plan should write saved_plan logs");
   assert.ok(plansRouteSource.includes('collection("logs")'), "saved_plan events should go to MongoDB logs collection");
 });

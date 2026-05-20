@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
-import clientPromise from "@/lib/mongodb";
+"use client";
 
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "Analytics Admin | Outdoor Gear Calculator",
-  description: "User behavior analytics for Outdoor Gear Calculator.",
-};
+import { FormEvent, useEffect, useState } from "react";
 
 type RankingItem = {
   name: string;
@@ -31,112 +25,7 @@ type AnalyticsData = {
   error?: string;
 };
 
-const emptyAnalytics: AnalyticsData = {
-  totals: {
-    calculator: 0,
-    productClick: 0,
-    savedPlan: 0,
-  },
-  topActivities: [],
-  topProducts: [],
-  topMerchants: [],
-  budgetBuckets: [
-    { label: "0-1000", count: 0 },
-    { label: "1000-3000", count: 0 },
-    { label: "3000-8000", count: 0 },
-    { label: "8000+", count: 0 },
-  ],
-};
-
-async function getTopRanking(field: "activity" | "productName" | "merchant", type?: string) {
-  const client = await clientPromise;
-  const db = client.db("outdoor");
-  const match: Record<string, unknown> = {
-    [`data.${field}`]: { $exists: true, $nin: [null, ""] },
-  };
-
-  if (type) {
-    match.type = type;
-  }
-
-  return db
-    .collection("logs")
-    .aggregate<RankingItem>([
-      { $match: match },
-      { $group: { _id: `$data.${field}`, count: { $sum: 1 } } },
-      { $sort: { count: -1, _id: 1 } },
-      { $limit: 10 },
-      { $project: { _id: 0, name: { $toString: "$_id" }, count: 1 } },
-    ])
-    .toArray();
-}
-
-async function getBudgetBucketCount(min: number, max?: number) {
-  const client = await clientPromise;
-  const db = client.db("outdoor");
-  const budgetFilter = max === undefined ? { $gte: min } : { $gte: min, $lt: max };
-
-  return db.collection("logs").countDocuments({
-    type: "calculator",
-    "data.budget": budgetFilter,
-  });
-}
-
-async function getAnalyticsData(): Promise<AnalyticsData> {
-  try {
-    const client = await clientPromise;
-    const db = client.db("outdoor");
-    const logs = db.collection("logs");
-
-    const [
-      calculator,
-      productClick,
-      savedPlan,
-      topActivities,
-      topProducts,
-      topMerchants,
-      budget0To1000,
-      budget1000To3000,
-      budget3000To8000,
-      budget8000Plus,
-    ] = await Promise.all([
-      logs.countDocuments({ type: "calculator" }),
-      logs.countDocuments({ type: "product_click" }),
-      logs.countDocuments({ type: "saved_plan" }),
-      getTopRanking("activity", "calculator"),
-      getTopRanking("productName", "product_click"),
-      getTopRanking("merchant", "product_click"),
-      getBudgetBucketCount(0, 1000),
-      getBudgetBucketCount(1000, 3000),
-      getBudgetBucketCount(3000, 8000),
-      getBudgetBucketCount(8000),
-    ]);
-
-    return {
-      totals: {
-        calculator,
-        productClick,
-        savedPlan,
-      },
-      topActivities,
-      topProducts,
-      topMerchants,
-      budgetBuckets: [
-        { label: "0-1000", count: budget0To1000 },
-        { label: "1000-3000", count: budget1000To3000 },
-        { label: "3000-8000", count: budget3000To8000 },
-        { label: "8000+", count: budget8000Plus },
-      ],
-    };
-  } catch (error) {
-    console.error("Failed to load analytics:", error);
-
-    return {
-      ...emptyAnalytics,
-      error: "Unable to load MongoDB analytics data. Check MONGODB_URI and database access.",
-    };
-  }
-}
+const ADMIN_PASSWORD_STORAGE_KEY = "ADMIN_PASSWORD";
 
 function StatCard({ label, value, hint }: { label: string; value: number; hint: string }) {
   return (
@@ -204,12 +93,94 @@ function BudgetTable({ buckets }: { buckets: BudgetBucket[] }) {
   );
 }
 
-export default async function AnalyticsAdminPage() {
-  const analytics = await getAnalyticsData();
-  const updatedAt = new Date().toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+export default function AnalyticsAdminPage() {
+  const [password, setPassword] = useState("");
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
+
+  async function loadAnalytics(nextPassword: string) {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/analytics", {
+        headers: {
+          "x-admin-password": nextPassword,
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
+        setIsUnlocked(false);
+        setAnalytics(null);
+        setError("Incorrect password");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Analytics request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as AnalyticsData;
+
+      localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, nextPassword);
+      setAnalytics(data);
+      setIsUnlocked(true);
+      setUpdatedAt(new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }));
+    } catch (requestError) {
+      console.error("Failed to load analytics:", requestError);
+      setError("Unable to load analytics. Check MongoDB access and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const storedPassword = localStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY);
+
+    if (storedPassword) {
+      setPassword(storedPassword);
+      void loadAnalytics(storedPassword);
+    }
+  }, []);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void loadAnalytics(password);
+  }
+
+  if (!isUnlocked || !analytics) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8 text-slate-950">
+        <form className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm" onSubmit={handleSubmit}>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Admin / Analytics</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-950">Enter password</h1>
+          <label className="mt-6 block text-sm font-bold text-slate-700" htmlFor="admin-password">
+            Password
+          </label>
+          <input
+            autoComplete="current-password"
+            className="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-sm font-semibold outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            id="admin-password"
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            value={password}
+          />
+          {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
+          <button
+            className="mt-5 h-11 w-full rounded-lg bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            disabled={isLoading || !password}
+            type="submit"
+          >
+            {isLoading ? "Checking..." : "View analytics"}
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
@@ -219,7 +190,21 @@ export default async function AnalyticsAdminPage() {
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Admin / Analytics</p>
             <h1 className="mt-2 text-3xl font-black text-slate-950">Outdoor Gear Calculator</h1>
           </div>
-          <p className="text-sm text-slate-500">Updated {updatedAt}</p>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+            <span>Updated {updatedAt}</span>
+            <button
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+              onClick={() => {
+                localStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
+                setAnalytics(null);
+                setIsUnlocked(false);
+                setPassword("");
+              }}
+              type="button"
+            >
+              Lock
+            </button>
+          </div>
         </header>
 
         {analytics.error && (
