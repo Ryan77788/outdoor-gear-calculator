@@ -35,9 +35,12 @@ const guideLabels = {
     analysis: "AI Recommendation Analysis",
     analysisTitle: "Why these gear priorities matter",
     bestFor: "Best For",
+    budgetTips: "Budget Tips",
     checklist: "Checklist",
+    commonMistakes: "Common Mistakes",
     coreGear: "Core Gear List",
     openPlanner: "Open Gear Planner",
+    packingStrategy: "Packing Strategy",
     riskAware: "Risk-aware reasoning",
     riskNotes: "Risk Notes",
     riskTitle: "Common Risk Reminders",
@@ -47,15 +50,308 @@ const guideLabels = {
     analysis: "AI 推荐分析",
     analysisTitle: "为什么这些装备优先级重要",
     bestFor: "适合场景",
+    budgetTips: "预算建议",
     checklist: "装备清单",
+    commonMistakes: "常见错误",
     coreGear: "核心装备清单",
     openPlanner: "打开装备规划器",
+    packingStrategy: "装备准备策略",
     riskAware: "风险感知推理",
     riskNotes: "风险提示",
     riskTitle: "常见风险提醒",
     scenarios: "适合场景",
   },
 } as const;
+
+type BudgetTip = {
+  level: string;
+  advice: string;
+};
+
+type GuideDepthContent = {
+  packingStrategy: string[];
+  commonMistakes: string[];
+  budgetTips: BudgetTip[];
+};
+
+const guideDepthContent: Record<Language, Record<string, GuideDepthContent>> = {
+  en: {
+    "hiking-gear-checklist": {
+      packingStrategy: [
+        "Build the kit around feet, water, navigation, and weather margin before adding comfort extras.",
+        "Use layered clothing so you can adjust during climbs, exposed ridges, shaded descents, and unexpected wind.",
+        "Keep small safety items easy to reach: headlamp, first aid, rain shell, snacks, and offline route information.",
+      ],
+      commonMistakes: [
+        "Starting with new shoes or socks before testing them on shorter walks.",
+        "Packing for the trailhead weather instead of the coldest or wettest point of the route.",
+        "Relying only on phone signal and one battery source for navigation.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Spend first on footwear, rain protection, water capacity, and a headlamp; borrow or reuse packs and layers where possible." },
+        { level: "Mid budget", advice: "Upgrade the pack fit, trekking poles, breathable shell, and blister care for longer routes." },
+        { level: "High budget", advice: "Choose lighter footwear, premium waterproof layers, satellite communication, and a refined sleep system for multi-day trails." },
+      ],
+    },
+    "camping-gear-checklist": {
+      packingStrategy: [
+        "Plan the campsite as zones: shelter, sleep, cooking, food storage, lighting, and cleanup.",
+        "Prioritize warmth from the ground up with a suitable sleeping pad before chasing a warmer bag.",
+        "Pack shared camp items by task so setup after dark is quick and no single bag holds every essential.",
+      ],
+      commonMistakes: [
+        "Buying a large tent but forgetting stakes, guylines, footprint, or a repair plan.",
+        "Underestimating nighttime temperature and ground cold at established campgrounds.",
+        "Leaving food storage, trash, and dish cleanup until pests or rain become a problem.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Put money into a reliable tent, sleeping pad, and basic stove; use simple bins and household kitchen items." },
+        { level: "Mid budget", advice: "Add better lighting, cooler performance, camp chairs, and weatherproof storage for a smoother group routine." },
+        { level: "High budget", advice: "Invest in roomy shelter, premium sleep systems, power station, and organized camp kitchen modules." },
+      ],
+    },
+    "skiing-gear-checklist": {
+      packingStrategy: [
+        "Treat warmth and dryness as a system: base layer, insulation, shell, socks, gloves, and backup dry items.",
+        "Confirm rentals, lift pass, boot fit, and helmet setup before thinking about accessories.",
+        "Keep goggles, sunscreen, snacks, water, and hand warmers accessible without returning to the car.",
+      ],
+      commonMistakes: [
+        "Wearing cotton base layers that hold moisture and chill quickly.",
+        "Bringing only one pair of gloves or socks for a wet, cold day.",
+        "Ignoring sun reflection, altitude, and dehydration because the weather feels cold.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Rent skis or board, but buy properly fitting socks, gloves, goggles, and thermal layers." },
+        { level: "Mid budget", advice: "Upgrade helmet, shell, pants, and reusable warm layers that work across multiple winter trips." },
+        { level: "High budget", advice: "Add custom-fit boots, premium goggles, technical outerwear, and avalanche-ready gear for appropriate terrain." },
+      ],
+    },
+    "fishing-gear-checklist": {
+      packingStrategy: [
+        "Match rod, line, bait, and lures to the water type, target species, and local regulations.",
+        "Separate tackle, tools, license, sun protection, and fish handling gear so the bank or boat stays organized.",
+        "Plan comfort for long stationary periods: shade, rain shell, seat, water, insect protection, and hand cleanup.",
+      ],
+      commonMistakes: [
+        "Buying too much tackle before understanding local species, depth, and seasonal patterns.",
+        "Forgetting license rules, catch limits, measuring tools, or bait restrictions.",
+        "Ignoring slippery banks, hooks, sun exposure, and hydration during long sessions.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Choose one versatile rod and a small tackle box tailored to local water instead of many specialty lures." },
+        { level: "Mid budget", advice: "Add polarized sunglasses, better rain protection, line tools, landing net, and organized storage." },
+        { level: "High budget", advice: "Upgrade rod and reel sensitivity, fish finder or guide support, premium cooler, and weatherproof tackle systems." },
+      ],
+    },
+    kayaking: {
+      packingStrategy: [
+        "Start with safety: PFD, whistle, route plan, weather check, and a realistic return paddle.",
+        "Use dry bags by priority so phone, keys, insulation, and first aid remain protected even after spray or capsize.",
+        "Dress for water exposure rather than air temperature, especially in wind or early-season conditions.",
+      ],
+      commonMistakes: [
+        "Assuming calm outbound conditions will stay the same for the return.",
+        "Keeping phone, car key, or warm layer loose in the cockpit without waterproof backup.",
+        "Skipping sun and glare protection because the trip is short.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Prioritize a certified PFD, dry bag, whistle, sunscreen, water, and basic paddle clothing." },
+        { level: "Mid budget", advice: "Add better paddle comfort, quick-dry layers, deck storage, and a compact first-aid kit." },
+        { level: "High budget", advice: "Invest in a lighter kayak or paddle, marine communication, quality dry wear, and route-specific rescue gear." },
+      ],
+    },
+    "desert-hiking": {
+      packingStrategy: [
+        "Plan water capacity first, then add electrolytes, shade, sun clothing, and route timing around heat exposure.",
+        "Start early, identify turnaround points, and carry navigation that works without signal or visual landmarks.",
+        "Use breathable protection for skin and eyes instead of relying only on sunscreen.",
+      ],
+      commonMistakes: [
+        "Carrying normal hiking water amounts on a route with no reliable refill.",
+        "Starting too late and reaching exposed terrain during peak heat.",
+        "Underestimating how sand, glare, and dry wind increase fatigue.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Spend on water capacity, sun hat, sunglasses, electrolytes, and offline maps before luxury items." },
+        { level: "Mid budget", advice: "Upgrade to UV clothing, breathable footwear, trekking poles, and a more stable hydration setup." },
+        { level: "High budget", advice: "Add satellite messenger, premium sun layers, lightweight pack, and emergency shade for remote desert routes." },
+      ],
+    },
+    climbing: {
+      packingStrategy: [
+        "Prioritize certified safety gear, helmet use, partner checks, route information, and descent planning.",
+        "Keep approach, climb, and belay layers separate so exposure and waiting time do not create cold or fatigue.",
+        "Pack small backups for delays: headlamp, tape, first aid, water, snacks, and a weather shell.",
+      ],
+      commonMistakes: [
+        "Focusing on shoes and chalk while overlooking helmet, communication, and route logistics.",
+        "Arriving without confirming anchors, descent, crowding, or local access rules.",
+        "Starting late with no headlamp or margin for slow parties ahead.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Do not compromise on certified helmet, harness, belay device, and partner-critical gear; borrow non-safety extras." },
+        { level: "Mid budget", advice: "Add better shoes, rope bag, approach layers, gloves, and route guide resources." },
+        { level: "High budget", advice: "Invest in specialized rope systems, premium protection, lightweight packs, and training-focused footwear." },
+      ],
+    },
+    "road-trip-gear-checklist": {
+      packingStrategy: [
+        "Prepare the vehicle first: documents, tire tools, emergency kit, lighting, charging, and offline navigation.",
+        "Divide gear into driving, roadside emergency, food, sleep, and weather layers so urgent items are not buried.",
+        "Plan resupply gaps, fuel stops, rest breaks, and backup routes before remote sections.",
+      ],
+      commonMistakes: [
+        "Packing camp comfort while ignoring tire pressure, jumper cables, or roadside visibility.",
+        "Depending on phone signal for maps, lodging, fuel, and emergency information.",
+        "Driving too long without planned rest, food, hydration, and driver rotation.",
+      ],
+      budgetTips: [
+        { level: "Low budget", advice: "Prioritize vehicle safety basics, first aid, water, charging cables, offline maps, and a simple cooler." },
+        { level: "Mid budget", advice: "Add power bank, better storage bins, roadside tools, comfort layers, and food organization." },
+        { level: "High budget", advice: "Upgrade to power station, recovery kit, premium cooler, roof or cargo storage, and remote communication." },
+      ],
+    },
+  },
+  zh: {
+    "hiking-gear-checklist": {
+      packingStrategy: [
+        "先围绕鞋、水、导航和天气余量来准备，再考虑拍照、餐具等舒适性装备。",
+        "采用分层穿衣，方便在爬升、风口、林荫下坡和突发降温时快速调整。",
+        "头灯、急救包、雨衣、补给和离线路线信息要放在容易拿到的位置。",
+      ],
+      commonMistakes: [
+        "新鞋或新袜子没有提前磨合，就直接走长线。",
+        "只按出发点天气打包，忽略山顶、风口或返程时的低温和雨水。",
+        "完全依赖手机信号和单一电源做导航。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "优先买合脚鞋、防雨层、水具和头灯；背包、衣物可以先借用或复用。" },
+        { level: "中预算", advice: "升级背包背负、登山杖、透气雨衣和防磨脚护理，适合更长路线。" },
+        { level: "高预算", advice: "选择更轻的鞋、专业防水层、卫星通信和多日徒步睡眠系统。" },
+      ],
+    },
+    "camping-gear-checklist": {
+      packingStrategy: [
+        "把营地拆成睡眠、遮蔽、做饭、食物收纳、照明和清洁几个区域来准备。",
+        "保暖要先看地垫，再看睡袋；地面冷会明显影响夜间睡眠。",
+        "多人露营时按任务分包，避免到营地后所有关键物品都在同一个箱子里。",
+      ],
+      commonMistakes: [
+        "只买大帐篷，却忘了地布、营钉、风绳和修补方案。",
+        "低估夜间温度和地面湿冷，尤其是水边或山谷营地。",
+        "食物、垃圾和餐具清洁没有提前规划，容易引来小动物或被雨水打乱。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "优先保证帐篷、地垫和基础炉具可靠；收纳和厨具可以先用家用替代。" },
+        { level: "中预算", advice: "增加更好的照明、保冷箱、营椅和防水收纳，提升多人营地效率。" },
+        { level: "高预算", advice: "投入大空间帐篷、高质量睡眠系统、电源和模块化营地厨房。" },
+      ],
+    },
+    "skiing-gear-checklist": {
+      packingStrategy: [
+        "把保暖和干燥当成系统：内层、中层、外壳、袜子、手套和备用干衣一起考虑。",
+        "先确认租赁、雪票、雪靴合脚和头盔，再考虑其他小配件。",
+        "雪镜、防晒、零食、水和暖宝宝要随身可取，不要全部放在车里。",
+      ],
+      commonMistakes: [
+        "穿棉质内层，出汗后很难干，容易快速变冷。",
+        "只带一副手套或袜子，湿了以后整天都会难受。",
+        "因为天气冷就忽略高海拔、反光、防晒和补水。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "雪板雪鞋可以租，但合适的袜子、手套、雪镜和保暖内层值得自己买。" },
+        { level: "中预算", advice: "升级头盔、雪服雪裤和可重复用于冬季旅行的保暖层。" },
+        { level: "高预算", advice: "投入定制或高适配雪靴、高端雪镜、技术外壳，以及适用地形的雪崩装备。" },
+      ],
+    },
+    "fishing-gear-checklist": {
+      packingStrategy: [
+        "根据水域、目标鱼种和当地法规匹配鱼竿、线组、饵和拟饵。",
+        "把钓具、工具、证件、防晒和鱼获处理用品分区收纳，岸边或船上会更顺手。",
+        "长时间等待要准备舒适性：遮阳、雨衣、座椅、水、防虫和手部清洁。",
+      ],
+      commonMistakes: [
+        "还不了解本地鱼种、水深和季节，就买太多不适用的拟饵。",
+        "忘记许可证、禁钓规则、尺寸限制、测量工具或饵料限制。",
+        "忽略湿滑岸边、鱼钩、防晒和长时间补水。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "选一支通用鱼竿和少量本地常用钓组，不要一开始堆满特殊拟饵。" },
+        { level: "中预算", advice: "增加偏光镜、雨具、剪线钳、抄网和更清晰的钓具收纳。" },
+        { level: "高预算", advice: "升级更灵敏的竿轮、鱼探或向导、优质保冷箱和防水钓具系统。" },
+      ],
+    },
+    kayaking: {
+      packingStrategy: [
+        "先准备安全装备：救生衣、哨子、路线计划、天气检查和可完成的返程距离。",
+        "用防水袋按优先级收纳手机、钥匙、保暖层和急救用品，避免进水后全部失效。",
+        "按水温准备衣物，而不是只看气温；有风或早春水域尤其重要。",
+      ],
+      commonMistakes: [
+        "以为出发时水面平静，返程时也一定一样。",
+        "手机、车钥匙或保暖衣物没有防水备份，直接散放在艇内。",
+        "因为路线短就忽略防晒、反光和补水。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "优先买合规救生衣、防水袋、哨子、防晒、水和基础速干衣物。" },
+        { level: "中预算", advice: "升级更舒适的桨、速干层、艇上收纳和小型急救包。" },
+        { level: "高预算", advice: "投入更轻的艇或桨、水上通信、专业防水服和路线对应的救援装备。" },
+      ],
+    },
+    "desert-hiking": {
+      packingStrategy: [
+        "先规划水量，再加入电解质、遮阳、太阳防护衣物和避开高温的出发时间。",
+        "提前设定折返点，使用不依赖信号和明显地标的导航方式。",
+        "用透气的皮肤和眼睛防护，不要只依赖防晒霜。",
+      ],
+      commonMistakes: [
+        "按普通徒步水量准备，却走没有可靠补水点的路线。",
+        "出发太晚，在最热时段进入无遮蔽区域。",
+        "低估沙地、强光和干热风对体力的消耗。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "优先买水具、防晒帽、太阳镜、电解质和离线地图。" },
+        { level: "中预算", advice: "升级 UPF 防晒衣、透气鞋、登山杖和更稳定的补水系统。" },
+        { level: "高预算", advice: "增加卫星通信、轻量背包、高端防晒层和远程路线应急遮蔽。" },
+      ],
+    },
+    climbing: {
+      packingStrategy: [
+        "优先考虑认证安全装备、头盔、伙伴检查、路线信息和下降方案。",
+        "把接近、攀爬和保护站等待时的衣物分开准备，避免暴露环境下失温或疲劳。",
+        "为延误准备头灯、胶带、急救、水、零食和防风雨外壳。",
+      ],
+      commonMistakes: [
+        "只关注攀岩鞋和镁粉，忽略头盔、沟通和路线后勤。",
+        "没有确认锚点、下降路线、人流量或当地准入规则。",
+        "出发太晚，又没有头灯和等待前方队伍的时间余量。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "认证头盔、安全带、保护器和伙伴关键装备不能省；非安全类装备可以先借用。" },
+        { level: "中预算", advice: "增加更合脚的攀岩鞋、绳包、接近衣物、手套和路线资料。" },
+        { level: "高预算", advice: "投入专项绳索系统、高端保护装备、轻量背包和训练型鞋款。" },
+      ],
+    },
+    "road-trip-gear-checklist": {
+      packingStrategy: [
+        "先准备车辆：证件、轮胎工具、应急包、照明、充电和离线导航。",
+        "把装备分成驾驶、路边应急、食物、睡眠和天气层，紧急物品不要压在最底下。",
+        "进入偏远路段前，提前规划补给间隔、加油点、休息点和备用路线。",
+      ],
+      commonMistakes: [
+        "只准备露营舒适装备，却忽略胎压、搭电线和路边警示。",
+        "地图、住宿、加油和紧急信息完全依赖手机信号。",
+        "长时间驾驶但没有安排休息、饮水、进食和驾驶员轮换。",
+      ],
+      budgetTips: [
+        { level: "低预算", advice: "优先准备车辆安全基础、急救、水、充电线、离线地图和简单保冷箱。" },
+        { level: "中预算", advice: "增加充电宝、收纳箱、路边工具、舒适衣物和食物整理系统。" },
+        { level: "高预算", advice: "升级户外电源、车辆救援套装、高端保冷箱、车顶或后备箱扩容和远程通信。" },
+      ],
+    },
+  },
+};
 
 const zhScenarioByActivity: Record<string, string[]> = {
   徒步: ["一日徒步和周末路线", "山地、林道和碎石路面", "雨天、降温或风口环境"],
@@ -131,6 +427,47 @@ function getLocalizedPage(page: GearChecklistPage, language: Language) {
   };
 }
 
+function getGuideDepthContent(page: GearChecklistPage, language: Language): GuideDepthContent {
+  const localizedPage = getLocalizedPage(page, language);
+  const activityName = language === "zh" ? localizeValue(page.analysisContext.activity, "zh") : page.h1.replace(" Gear Checklist", "");
+
+  return (
+    guideDepthContent[language][page.slug] ?? {
+      packingStrategy: [
+        language === "zh"
+          ? `围绕${activityName}的天气、行程长度和安全边界来安排装备优先级。`
+          : `Plan gear priorities around ${activityName.toLowerCase()} weather, trip length, and safety margin.`,
+        language === "zh" ? `先准备${localizedPage.gear.slice(0, 2).join("、")}，再补充舒适性装备。` : `Start with ${localizedPage.gear.slice(0, 2).join(" and ")} before adding comfort extras.`,
+        language === "zh" ? "把应急、照明、补水和保暖物品放在容易取用的位置。" : "Keep emergency, lighting, hydration, and warmth items easy to reach.",
+      ],
+      commonMistakes: localizedPage.risks,
+      budgetTips: [
+        {
+          level: language === "zh" ? "低预算" : "Low budget",
+          advice:
+            language === "zh"
+              ? "优先解决安全、天气防护和补水问题，非关键舒适装备可以延后。"
+              : "Prioritize safety, weather protection, and hydration before non-essential comfort items.",
+        },
+        {
+          level: language === "zh" ? "中预算" : "Mid budget",
+          advice:
+            language === "zh"
+              ? "升级最影响体验的核心装备，例如背负、睡眠、保暖或收纳系统。"
+              : "Upgrade the core items that most affect comfort, such as carry, sleep, warmth, or storage systems.",
+        },
+        {
+          level: language === "zh" ? "高预算" : "High budget",
+          advice:
+            language === "zh"
+              ? "选择更轻、更耐用、更适合长线或复杂环境的专业装备。"
+              : "Choose lighter, more durable, and more specialized gear for longer or more complex trips.",
+        },
+      ],
+    }
+  );
+}
+
 export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }) {
   const [language, setLanguage] = useState<Language>("en");
 
@@ -147,6 +484,7 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   const tierMeta = getGearTierMeta(page.tier, language);
   const tierStyle = getGearTierStyle(page.tier);
   const heroImage = getActivityHeroImage(page.analysisContext.activity);
+  const depthContent = getGuideDepthContent(page, language);
   const activitySlug = activitySlugByActivity[page.analysisContext.activity] ?? page.slug;
   const plannerHref = `/?activity=${activitySlug}&lang=${language}`;
 
@@ -237,6 +575,44 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
         </div>
       </section>
 
+      <section className="mx-auto grid max-w-6xl gap-6 px-6 pb-14 lg:grid-cols-3">
+        <article className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{labels.packingStrategy}</p>
+          <ul className="mt-5 space-y-4">
+            {depthContent.packingStrategy.map((item) => (
+              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={item}>
+                <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-700" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-rose-700">{labels.commonMistakes}</p>
+          <ul className="mt-5 space-y-4">
+            {depthContent.commonMistakes.map((item) => (
+              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={item}>
+                <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-rose-600" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-slate-700">{labels.budgetTips}</p>
+          <div className="mt-5 space-y-3">
+            {depthContent.budgetTips.map((tip) => (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" key={tip.level}>
+                <h3 className="text-sm font-black text-slate-950">{tip.level}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-700">{tip.advice}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
       <section className="mx-auto max-w-6xl px-6 pb-14">
         <div className="overflow-hidden rounded-2xl border border-white/20 bg-slate-950 p-6 text-white shadow-lg shadow-emerald-950/10">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
@@ -282,6 +658,21 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-16">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-900 px-6 py-5 text-white shadow-lg shadow-emerald-950/10">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-100">{localizedPage.eyebrow}</p>
+            <p className="mt-2 text-base font-semibold text-white/82">{localizedPage.h1}</p>
+          </div>
+          <Link
+            className="rounded-xl bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-emerald-900 transition hover:bg-emerald-50 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+            href={plannerHref}
+          >
+            {labels.openPlanner}
+          </Link>
         </div>
       </section>
     </main>

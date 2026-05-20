@@ -19,6 +19,12 @@ export type GearChecklistPage = {
   scenarios: string[];
   gear: string[];
   risks: string[];
+  packingStrategy?: string[];
+  commonMistakes?: string[];
+  budgetTips?: {
+    level: string;
+    advice: string;
+  }[];
   tier: GearTier;
   analysisContext: {
     activity: Activity;

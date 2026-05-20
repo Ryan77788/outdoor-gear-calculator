@@ -160,6 +160,15 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(guideClientSource.includes("适合场景"), "guide pages should include Chinese scenarios label");
   assert.ok(guideClientSource.includes("核心装备清单"), "guide pages should include Chinese core gear label");
   assert.ok(guideClientSource.includes("风险提示"), "guide pages should include Chinese risk notes label");
+  assert.ok(guideClientSource.includes("Packing Strategy"), "guide pages should include packing strategy section");
+  assert.ok(guideClientSource.includes("Common Mistakes"), "guide pages should include common mistakes section");
+  assert.ok(guideClientSource.includes("Budget Tips"), "guide pages should include budget tips section");
+  assert.ok(guideClientSource.includes("装备准备策略"), "guide pages should include Chinese packing strategy label");
+  assert.ok(guideClientSource.includes("常见错误"), "guide pages should include Chinese common mistakes label");
+  assert.ok(guideClientSource.includes("预算建议"), "guide pages should include Chinese budget tips label");
+  assert.ok(guideClientSource.includes("water type, target species"), "fishing guide should have activity-specific content");
+  assert.ok(guideClientSource.includes("water capacity first"), "desert hiking guide should have activity-specific content");
+  assert.ok(guideClientSource.includes("Prepare the vehicle first"), "road trip guide should have activity-specific content");
   assert.ok(guideClientSource.includes("打开装备规划器"), "guide pages should include Chinese planner button");
 });
 
