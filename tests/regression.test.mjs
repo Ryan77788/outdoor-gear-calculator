@@ -238,3 +238,31 @@ test("product cards and click logging are affiliate-ready", () => {
   assert.ok(sharedPlanSource.includes("Available on"), "English shared product card should display merchant");
   assert.ok(sharedPlanSource.includes("来自"), "Chinese shared product card should display merchant");
 });
+
+test("admin analytics page reads behavior metrics from MongoDB logs", () => {
+  const analyticsPagePath = path.join(rootDir, "src/app/admin/analytics/page.tsx");
+  const plansRouteSource = fs.readFileSync(path.join(rootDir, "src/app/api/plans/route.ts"), "utf8");
+
+  assert.ok(fs.existsSync(analyticsPagePath), "admin analytics page should exist");
+
+  const analyticsSource = fs.readFileSync(analyticsPagePath, "utf8");
+
+  for (const token of [
+    "logs",
+    "calculator",
+    "product_click",
+    "saved_plan",
+    "activity",
+    "productName",
+    "merchant",
+    "0-1000",
+    "1000-3000",
+    "3000-8000",
+    "8000+",
+  ]) {
+    assert.ok(analyticsSource.includes(token), `analytics page should include ${token}`);
+  }
+
+  assert.ok(plansRouteSource.includes('type: "saved_plan"'), "saving a plan should write saved_plan logs");
+  assert.ok(plansRouteSource.includes('collection("logs")'), "saved_plan events should go to MongoDB logs collection");
+});

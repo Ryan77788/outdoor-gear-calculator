@@ -51,6 +51,21 @@ export async function POST(request: Request) {
     const result = await db.collection(SAVED_PLANS_COLLECTION).insertOne(plan);
     const planId = result.insertedId.toString();
 
+    await db.collection("logs").insertOne({
+      type: "saved_plan",
+      data: {
+        planId,
+        activity: body.activity,
+        days: body.tripDays,
+        weather: body.weather,
+        people: body.peopleCount,
+        budget: body.budget,
+        totalPrice: body.totalPrice,
+        gearTier: body.gearTier,
+      },
+      createdAt,
+    });
+
     return NextResponse.json({
       success: true,
       planId,
