@@ -21,6 +21,10 @@ export type ProductPriority = "core" | "important" | "optional";
 export type GearType = "perPerson" | "shared" | "consumable";
 export type BudgetWeight = "high" | "medium" | "low";
 export type ImageStatus = "matched" | "placeholder" | "needsReview";
+export type ActivitySlug = "hiking" | "desert-hiking" | "skiing" | "camping" | "fishing" | "kayaking";
+export type ProductActivity = Activity | ActivitySlug;
+export type Currency = "CNY";
+export type ProductDifficulty = "easy" | "moderate" | "technical";
 export type GearCategory =
   | "shoes"
   | "shellJacket"
@@ -71,8 +75,14 @@ export type ProductTemplate = {
   category: string;
   categoryEn?: string;
   gearCategory: GearCategory;
-  activity: Activity[];
+  activity: ProductActivity[];
+  currency: Currency;
   weather: ProductWeather[];
+  rating: 4.2 | 4.5 | 4.8;
+  tags: string[];
+  difficulty: ProductDifficulty;
+  affiliate: boolean;
+  description: string;
   level: ProductLevel;
   priority: ProductPriority;
   gearType: GearType;
@@ -243,25 +253,40 @@ const categoryZhByGearCategory: Record<GearCategory, string> = {
   consumable: "消耗品",
 };
 
-type ProductInput = Omit<ProductTemplate, "buyUrl" | "image" | "imageStatus" | "category" | "categoryEn"> & {
+type ProductInput = Omit<
+  ProductTemplate,
+  | "affiliate"
+  | "buyUrl"
+  | "currency"
+  | "description"
+  | "difficulty"
+  | "image"
+  | "imageStatus"
+  | "rating"
+  | "tags"
+  | "category"
+  | "categoryEn"
+> & {
+  affiliate?: boolean;
   category?: string;
   categoryEn?: string;
+  currency?: Currency;
+  description?: string;
+  difficulty?: ProductDifficulty;
   image?: string;
   imageStatus?: ImageStatus;
+  rating?: 4.2 | 4.5 | 4.8;
+  tags?: string[];
 };
 
-type CommercePlatform = "amazon" | "backcountry" | "evo" | "basspro" | "decathlon";
+type CommercePlatform = "amazon" | "rei" | "decathlon";
 
 function searchUrl(platform: CommercePlatform, query: string) {
   const encodedQuery = encodeURIComponent(query);
 
   switch (platform) {
-    case "backcountry":
-      return `https://www.backcountry.com/search?q=${encodedQuery}`;
-    case "evo":
-      return `https://www.evo.com/shop?text=${encodedQuery}`;
-    case "basspro":
-      return `https://www.basspro.com/shop/en/search?searchTerm=${encodedQuery}`;
+    case "rei":
+      return `https://www.rei.com/search?q=${encodedQuery}`;
     case "decathlon":
       return `https://www.decathlon.com/search?query=${encodedQuery}`;
     case "amazon":
@@ -278,13 +303,11 @@ function getCommercePlatform(product: ProductInput): CommercePlatform {
   }
 
   if (brand.includes("backcountry")) {
-    return "backcountry";
+    return "rei";
   }
 
   if (product.activity.includes("钓鱼") || product.gearCategory === "fishingRod" || product.gearCategory === "fishingLine") {
-    return ["daiwa", "shimano", "berkley", "yeti"].some((fishingBrand) => brand.includes(fishingBrand))
-      ? "basspro"
-      : "amazon";
+    return "amazon";
   }
 
   if (
@@ -293,7 +316,7 @@ function getCommercePlatform(product: ProductInput): CommercePlatform {
     ["skiBoard", "skiBinding", "skiBoots", "skiSuit", "goggles"].includes(product.gearCategory)
   ) {
     if (["burton", "union", "smith", "salomon", "giro", "hestra"].some((skiBrand) => brand.includes(skiBrand))) {
-      return "evo";
+      return "rei";
     }
 
     return "amazon";
@@ -310,8 +333,8 @@ function getCommercePlatform(product: ProductInput): CommercePlatform {
       product.gearCategory,
     )
   ) {
-    if (["arc'teryx", "patagonia", "la sportiva"].some((outdoorBrand) => brand.includes(outdoorBrand))) {
-      return "backcountry";
+    if (["arc'teryx", "patagonia", "la sportiva", "osprey", "black diamond", "petzl"].some((outdoorBrand) => brand.includes(outdoorBrand))) {
+      return "rei";
     }
 
     return "amazon";
@@ -324,8 +347,8 @@ function getCommercePlatform(product: ProductInput): CommercePlatform {
     product.activity.includes("皮划艇") ||
     ["tent", "sleepingBag", "mat", "stove", "lighting", "chair", "tableChair"].includes(product.gearCategory)
   ) {
-    if (["msr", "sea to summit", "helinox"].some((campingBrand) => brand.includes(campingBrand))) {
-      return "backcountry";
+    if (["msr", "sea to summit", "helinox", "therm-a-rest"].some((campingBrand) => brand.includes(campingBrand))) {
+      return "rei";
     }
 
     return "amazon";
@@ -340,13 +363,115 @@ function makeBuyUrl(product: ProductInput) {
   return searchUrl(getCommercePlatform(product), query);
 }
 
+const activitySlugByActivity: Partial<Record<Activity, ActivitySlug>> = {
+  登山: "hiking",
+  徒步: "hiking",
+  露营: "camping",
+  滑雪: "skiing",
+  钓鱼: "fishing",
+  皮划艇: "kayaking",
+  单板滑雪: "skiing",
+  沙漠徒步: "desert-hiking",
+  冬季露营: "camping",
+  海边露营: "camping",
+};
+
+const tagByWeather: Partial<Record<ProductWeather, string>> = {
+  晴天: "sunny",
+  雨天: "waterproof",
+  寒冷: "winter",
+  炎热: "hot-weather",
+};
+
+const tagByLevel: Record<ProductLevel, string> = {
+  basic: "value",
+  standard: "reliable",
+  premium: "premium",
+};
+
+const tagByBudgetWeight: Record<BudgetWeight, string> = {
+  high: "core",
+  medium: "upgrade",
+  low: "accessory",
+};
+
+function expandActivities(activities: ProductActivity[]) {
+  const expanded = new Set<ProductActivity>(activities);
+
+  for (const activity of activities) {
+    const slug = activitySlugByActivity[activity as Activity];
+
+    if (slug) expanded.add(slug);
+  }
+
+  return [...expanded];
+}
+
+function getProductRating(product: ProductInput) {
+  if (product.rating) return product.rating;
+  if (product.level === "premium") return 4.8;
+  if (product.level === "standard") return 4.5;
+  return 4.2;
+}
+
+function getProductDifficulty(product: ProductInput): ProductDifficulty {
+  if (product.difficulty) return product.difficulty;
+  if (product.level === "premium" || ["climbing", "skiing", "desert-hiking"].some((slug) => product.activity.includes(slug as ActivitySlug))) {
+    return "technical";
+  }
+  if (product.level === "standard" || product.priority === "core") return "moderate";
+  return "easy";
+}
+
+function getProductTags(product: ProductInput) {
+  const tags = new Set<string>(product.tags ?? []);
+
+  tags.add(tagByLevel[product.level]);
+  tags.add(tagByBudgetWeight[product.budgetWeight]);
+  tags.add(categoryEnByGearCategory[product.gearCategory].replace(/\s+/g, "-"));
+
+  for (const weather of product.weather) {
+    const tag = tagByWeather[weather];
+
+    if (tag) tags.add(tag);
+  }
+
+  for (const activity of expandActivities(product.activity)) {
+    if (/^[a-z-]+$/.test(activity)) tags.add(activity);
+  }
+
+  return [...tags];
+}
+
+function getProductDescription(product: ProductInput) {
+  if (product.description) return product.description;
+
+  const category = product.categoryEn ?? categoryEnByGearCategory[product.gearCategory];
+  const name = product.nameEn ?? product.name;
+  const weatherFit = product.weather.includes("通用")
+    ? "mixed outdoor conditions"
+    : product.weather
+        .filter((weather) => weather !== "通用")
+        .map((weather) => tagByWeather[weather] ?? weather)
+        .join(", ");
+
+  return `${product.brand} ${name} is a ${category} selected for real trip planning, balancing durability, fit, and practical field use in ${weatherFit}.`;
+}
+
 function p(product: ProductInput): ProductTemplate {
   return {
     ...product,
+    activity: expandActivities(product.activity),
+    affiliate: product.affiliate ?? false,
     category: product.category ?? categoryZhByGearCategory[product.gearCategory],
     categoryEn: product.categoryEn ?? categoryEnByGearCategory[product.gearCategory],
+    currency: product.currency ?? "CNY",
+    description: getProductDescription(product),
+    difficulty: getProductDifficulty(product),
     image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
+    rating: getProductRating(product),
+    tags: getProductTags(product),
     buyUrl: makeBuyUrl(product),
   };
 }

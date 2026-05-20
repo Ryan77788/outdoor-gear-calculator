@@ -147,3 +147,53 @@ test("product links include searchable product keywords", () => {
     }
   }
 });
+
+test("product catalog exposes future-ready commerce metadata", () => {
+  const productIds = [];
+  const supportedActivitySlugs = ["hiking", "desert-hiking", "skiing", "camping", "fishing", "kayaking"];
+  const allowedCommerceHosts = ["amazon.com", "rei.com", "decathlon.com"];
+
+  for (const catalog of Object.values(products.productCatalog)) {
+    for (const product of catalog) {
+      productIds.push(product.id);
+
+      for (const field of [
+        "id",
+        "brand",
+        "activity",
+        "currency",
+        "buyUrl",
+        "rating",
+        "tags",
+        "difficulty",
+        "weather",
+        "affiliate",
+        "description",
+      ]) {
+        assert.ok(product[field] !== undefined, `${product.id} should include ${field}`);
+      }
+
+      assert.equal(product.currency, "CNY", `${product.id} should use CNY currency`);
+      assert.ok([4.2, 4.5, 4.8].includes(product.rating), `${product.id} should use supported rating values`);
+      assert.equal(Array.isArray(product.tags), true, `${product.id} should expose tags as an array`);
+      assert.ok(product.tags.length > 0, `${product.id} should include at least one tag`);
+      assert.ok(["easy", "moderate", "technical"].includes(product.difficulty), `${product.id} should include difficulty`);
+      assert.equal(product.affiliate, false, `${product.id} should default affiliate to false`);
+      assert.equal(typeof product.description, "string", `${product.id} should include a description`);
+      assert.ok(product.description.length >= 40, `${product.id} should include a realistic description`);
+      assert.ok(
+        allowedCommerceHosts.some((host) => new URL(product.buyUrl).hostname.endsWith(host)),
+        `${product.id} should link to an allowed commerce platform`,
+      );
+    }
+  }
+
+  assert.equal(new Set(productIds).size, productIds.length, "all products should have unique ids");
+
+  for (const slug of supportedActivitySlugs) {
+    assert.ok(
+      Object.values(products.productCatalog).some((catalog) => catalog.some((product) => product.activity.includes(slug))),
+      `product activity should support ${slug}`,
+    );
+  }
+});
