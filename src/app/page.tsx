@@ -465,6 +465,7 @@ export default function Home() {
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
+  const [isGeneratingGearList, setIsGeneratingGearList] = useState(false);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
@@ -828,6 +829,11 @@ export default function Home() {
   }, []);
 
   async function handleGenerate() {
+    if (isGeneratingGearList) {
+      return;
+    }
+
+    setIsGeneratingGearList(true);
     setShowResult(true);
     setShouldScrollToResults(true);
 
@@ -850,6 +856,8 @@ export default function Home() {
       });
     } catch (error) {
       console.error("Failed to log calculator usage:", error);
+    } finally {
+      setIsGeneratingGearList(false);
     }
   }
 
@@ -1221,11 +1229,15 @@ export default function Home() {
 
           <div className="mt-7 flex justify-center">
             <button
-              className="inline-flex h-13 min-w-64 items-center justify-center rounded-xl bg-emerald-700 px-8 text-base font-bold text-white shadow-lg shadow-emerald-900/20 transition hover:-translate-y-0.5 hover:bg-emerald-800 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+              className="inline-flex h-13 min-w-64 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-8 text-base font-bold text-white shadow-lg shadow-emerald-900/20 transition hover:-translate-y-0.5 hover:bg-emerald-800 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:bg-emerald-700"
+              disabled={isGeneratingGearList}
               onClick={handleGenerate}
               type="button"
             >
-              {t.generateGearList}
+              {isGeneratingGearList && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" aria-hidden="true" />
+              )}
+              {isGeneratingGearList ? t.generating : t.generateGearList}
             </button>
           </div>
         </div>

@@ -270,6 +270,11 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes("getBoundingClientRect"), "result scroll should check whether the user is already near the result area");
   assert.ok(source.includes("scrollIntoView({ behavior: \"smooth\" })"), "result area should smooth scroll after it renders");
   assert.ok(source.includes('id="gear-results"'), "generated results should expose a Gear Results anchor");
+  assert.ok(source.includes("isGeneratingGearList"), "Generate Gear List should have its own loading state");
+  assert.ok(source.includes("setIsGeneratingGearList(true)"), "Generate Gear List should enter loading state on click");
+  assert.ok(source.includes("setIsGeneratingGearList(false)"), "Generate Gear List should always restore loading state");
+  assert.ok(source.includes("disabled={isGeneratingGearList}"), "Generate Gear List button should be disabled while generating");
+  assert.ok(source.includes("isGeneratingGearList ? t.generating : t.generateGearList"), "Generate Gear List button should show localized loading text");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");
