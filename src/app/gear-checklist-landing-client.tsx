@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { SiteFooter } from "@/app/site-footer";
 import type { GearChecklistPage } from "@/app/gear-checklist-pages";
 import type { Activity } from "@/data/products";
 import { buildGearList, getRiskBlocks } from "@/lib/recommendation";
@@ -1001,6 +1002,7 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
           </Link>
         </div>
       </section>
+      <SiteFooter language={language} />
     </main>
   );
 }

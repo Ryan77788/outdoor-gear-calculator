@@ -117,6 +117,9 @@ test("share image poster uses real recommendation details instead of fake budget
 test("home page exposes site navigation and activity guide entries", () => {
   const source = fs.readFileSync(path.join(rootDir, "src/app/page.tsx"), "utf8");
   const guideClientSource = fs.readFileSync(path.join(rootDir, "src/app/gear-checklist-landing-client.tsx"), "utf8");
+  const footerSource = fs.existsSync(path.join(rootDir, "src/app/site-footer.tsx"))
+    ? fs.readFileSync(path.join(rootDir, "src/app/site-footer.tsx"), "utf8")
+    : "";
 
   for (const token of [
     "Gear Planner",
@@ -179,6 +182,44 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes("flex min-h-64 flex-col justify-between"), "home activity guide cards should use vertical content flow");
   assert.ok(source.includes("self-start rounded-lg"), "home activity guide CTA should be a small rounded button");
   assert.ok(!source.includes("mt-4 inline-flex w-fit items-center rounded-full border border-white/25"), "home activity guide CTA should not use the old large pill overlay style");
+  assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
+  assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
+  assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");
+  assert.ok(footerSource.includes("Outdoor Gear Calculator"), "footer should include Outdoor Gear Calculator brand copy");
+  assert.ok(footerSource.includes("Plan smarter. Pack lighter. Go further."), "footer should include the requested slogan");
+  assert.ok(footerSource.includes("function withLanguage"), "footer should build localized internal links");
+  assert.ok(footerSource.includes('`/?lang=${language}${hash}`'), "footer hash links should preserve language before the section hash");
+  assert.ok(footerSource.includes('`${href}?lang=${language}`'), "footer page links should preserve language as a query parameter");
+  for (const footerToken of [
+    "Quick Links",
+    "Activity Guides",
+    "Legal",
+    "Gear Planner",
+    "Saved Plans",
+    "Privacy Policy",
+    "Terms",
+    "Affiliate Disclosure",
+    "快速链接",
+    "法律信息",
+  ]) {
+    assert.ok(footerSource.includes(footerToken), `footer should include localized copy ${footerToken}`);
+  }
+  for (const href of [
+    "/#gear-planner",
+    "/#activity-guides",
+    "/#saved-plans",
+    "/hiking-gear-checklist",
+    "/camping-gear-checklist",
+    "/skiing-gear-checklist",
+    "/fishing-gear-checklist",
+    "/kayaking",
+    "/road-trip-gear-checklist",
+    "/privacy",
+    "/terms",
+    "/affiliate-disclosure",
+  ]) {
+    assert.ok(footerSource.includes(`href: "${href}"`) || footerSource.includes(`href="${href}"`), `footer should link to ${href}`);
+  }
   assert.ok(guideClientSource.includes("getGuideImage(page.slug)"), "SEO guide hero should use guide image mapping");
   assert.ok(guideClientSource.includes("getGuideImage(guide.slug)"), "related guide cards should use guide image mapping");
   assert.ok(guideClientSource.includes('href={`/${guide.slug}?lang=${language}`}'), "related guide links should preserve language");
@@ -193,6 +234,33 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(guideClientSource.includes("water capacity first"), "desert hiking guide should have activity-specific content");
   assert.ok(guideClientSource.includes("Prepare the vehicle first"), "road trip guide should have activity-specific content");
   assert.ok(guideClientSource.includes("打开装备规划器"), "guide pages should include Chinese planner button");
+});
+
+test("legal placeholder pages exist with concise English content and footer", () => {
+  const legalClientSource = fs.existsSync(path.join(rootDir, "src/app/legal-page-client.tsx"))
+    ? fs.readFileSync(path.join(rootDir, "src/app/legal-page-client.tsx"), "utf8")
+    : "";
+
+  assert.ok(legalClientSource.includes('"use client"'), "legal pages should use a client component for localStorage language fallback");
+  assert.ok(legalClientSource.includes('new URLSearchParams(window.location.search).get("lang")'), "legal pages should prefer URL language");
+  assert.ok(legalClientSource.includes('window.localStorage.getItem("language")'), "legal pages should read stored language when URL language is absent");
+  assert.ok(legalClientSource.includes('setLanguage("en")'), "legal pages should default to English");
+  assert.ok(legalClientSource.includes("隐私政策"), "legal client should include Chinese privacy title");
+  assert.ok(legalClientSource.includes("服务条款"), "legal client should include Chinese terms title");
+  assert.ok(legalClientSource.includes("联盟披露"), "legal client should include Chinese affiliate disclosure title");
+
+  for (const [route, heading] of [
+    ["privacy", "Privacy Policy"],
+    ["terms", "Terms"],
+    ["affiliate-disclosure", "Affiliate Disclosure"],
+  ]) {
+    const pagePath = path.join(rootDir, "src/app", route, "page.tsx");
+    assert.ok(fs.existsSync(pagePath), `${route} page should exist`);
+
+    const source = fs.readFileSync(pagePath, "utf8");
+    assert.ok(source.includes(heading), `${route} page should include heading`);
+    assert.ok(source.includes("<LegalPageClient"), `${route} page should render localized legal content`);
+  }
 });
 
 test("specialized activity background assets are not accidental duplicate placeholders", () => {

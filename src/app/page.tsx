@@ -39,6 +39,7 @@ import {
   type Language,
 } from "@/lib/i18n";
 import { getActivityBackground, getGuideImage, getShareCardBackground } from "@/lib/activity-backgrounds";
+import { SiteFooter } from "@/app/site-footer";
 
 type IconName = RiskIconName;
 
@@ -1844,6 +1845,7 @@ export default function Home() {
         </section>
         </>
       )}
+      <SiteFooter language={language} />
     </main>
   );
 }
