@@ -7,7 +7,7 @@ type ActivityBackground = {
 };
 
 const fallbackActivityBackground: ActivityBackground = {
-  image: "/share-hiking.jpg",
+  image: "/activity/hiking.jpg",
   alt: "Outdoor trail and mountain landscape",
 };
 
@@ -17,12 +17,12 @@ const neutralShareCardBackground: ActivityBackground = {
 };
 
 export const activityBackgrounds: Record<Activity, ActivityBackground> = {
-  登山: { image: "/share-hiking.jpg", alt: "Mountain hiking landscape" },
-  徒步: { image: "/share-hiking.jpg", alt: "Hiking trail landscape" },
-  露营: { image: "/share-camping.jpg", alt: "Outdoor camping site" },
-  滑雪: { image: "/share-skiing.jpg", alt: "Skiing on a snowy mountain" },
-  钓鱼: { image: "/fishing-hero.jpg", alt: "Fishing by the water" },
-  自驾游: { image: "/share-hiking.jpg", alt: "Outdoor road trip landscape" },
+  登山: { image: "/activity/hiking.jpg", slug: "hiking", alt: "Mountain hiking landscape" },
+  徒步: { image: "/activity/hiking.jpg", slug: "hiking-gear-checklist", alt: "Hiking trail landscape" },
+  露营: { image: "/activity/camping.jpg", slug: "camping-gear-checklist", alt: "Tent campsite in the outdoors" },
+  滑雪: { image: "/activity/skiing.jpg", slug: "skiing-gear-checklist", alt: "Skiing on a snowy mountain" },
+  钓鱼: { image: "/activity/fishing.jpg", slug: "fishing-gear-checklist", alt: "Fishing by the water" },
+  自驾游: { image: "/activity/road-trip.jpg", slug: "road-trip-gear-checklist", alt: "Road trip with vehicle on an open road" },
   骑行: { image: "/activity/trail-running.jpg", alt: "Fast movement through an outdoor trail" },
   海边旅行: { image: "/activity/beach-camping.jpg", alt: "Beach and coastal outdoor scene" },
   越野跑: { image: "/activity/trail-running.jpg", slug: "trail-running", alt: "Trail running route" },
@@ -44,6 +44,28 @@ export const activityHeroImagesBySlug: Record<string, string> = Object.fromEntri
     .filter((background): background is ActivityBackground & { slug: string } => Boolean(background.slug))
     .map((background) => [background.slug, background.image]),
 );
+
+export const guideImagesBySlug: Record<string, string> = {
+  hiking: "/activity/hiking.jpg",
+  "hiking-gear-checklist": "/activity/hiking.jpg",
+  "camping-gear-checklist": "/activity/camping.jpg",
+  "skiing-gear-checklist": "/activity/skiing.jpg",
+  "fishing-gear-checklist": "/activity/fishing.jpg",
+  kayaking: "/activity/kayaking.jpg",
+  "desert-hiking": "/activity/desert-hiking.jpg",
+  climbing: "/activity/climbing.jpg",
+  "road-trip-gear-checklist": "/activity/road-trip.jpg",
+  roadtrip: "/activity/road-trip.jpg",
+  "road-trip": "/activity/road-trip.jpg",
+  "self-driving": "/activity/road-trip.jpg",
+  backpacking: "/activity/backpacking.jpg",
+  snowboarding: "/activity/snowboarding.jpg",
+  "winter-camping": "/activity/winter-camping.jpg",
+  "beach-camping": "/activity/beach-camping.jpg",
+  "beach-travel-gear-checklist": "/activity/beach-camping.jpg",
+  "trail-running": "/activity/trail-running.jpg",
+  "cycling-gear-checklist": "/activity/trail-running.jpg",
+};
 
 const activityBackgroundAliases: Record<string, Activity> = {
   hiking: "徒步",
@@ -86,7 +108,7 @@ const shareCardBackgrounds: Partial<Record<Activity, ActivityBackground>> = {
   露营: { image: "/share-camping.jpg", alt: "Forest campsite outdoor photography" },
   滑雪: { image: "/share-skiing.jpg", alt: "Snow mountain skiing photography" },
   钓鱼: { image: "/fishing-hero.jpg", alt: "Lake fishing outdoor photography" },
-  自驾游: { image: "/share-roadtrip.jpg", alt: "Outdoor road trip landscape" },
+  自驾游: { image: "/activity/road-trip.jpg", alt: "Outdoor road trip landscape" },
   攀岩: { image: "/activity/climbing.jpg", alt: "Rock climbing wall photography" },
   皮划艇: { image: "/activity/kayaking.jpg", alt: "Kayaking on a lake photography" },
   单板滑雪: { image: "/activity/snowboarding.jpg", alt: "Snowboarding on a mountain slope" },
@@ -112,7 +134,14 @@ export function getShareCardBackground(activity: Activity | string) {
 }
 
 export function getActivityBackgroundBySlug(slug: string) {
-  return Object.values(activityBackgrounds).find((background) => background.slug === slug) ?? fallbackActivityBackground;
+  const image = getGuideImage(slug);
+  const background = Object.values(activityBackgrounds).find((item) => item.image === image || item.slug === slug);
+
+  return background ? { ...background, image } : { ...fallbackActivityBackground, image };
+}
+
+export function getGuideImage(slug: string) {
+  return guideImagesBySlug[normalizeActivityKey(slug)] ?? fallbackActivityBackground.image;
 }
 
 export function getActivityHeroImage(activity: Activity) {

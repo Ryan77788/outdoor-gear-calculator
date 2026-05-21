@@ -30,6 +30,11 @@ function loadTsModule(relativePath) {
 const backgrounds = loadTsModule("src/lib/activity-backgrounds.ts");
 
 test("new activities resolve to dedicated activity image paths", () => {
+  assert.equal(backgrounds.activityBackgrounds["徒步"].image, "/activity/hiking.jpg");
+  assert.equal(backgrounds.activityBackgrounds["露营"].image, "/activity/camping.jpg");
+  assert.equal(backgrounds.activityBackgrounds["滑雪"].image, "/activity/skiing.jpg");
+  assert.equal(backgrounds.activityBackgrounds["钓鱼"].image, "/activity/fishing.jpg");
+  assert.equal(backgrounds.activityBackgrounds["自驾游"].image, "/activity/road-trip.jpg");
   assert.equal(backgrounds.activityBackgrounds["皮划艇"].image, "/activity/kayaking.jpg");
   assert.equal(backgrounds.activityBackgrounds["攀岩"].image, "/activity/climbing.jpg");
   assert.equal(backgrounds.activityBackgrounds["单板滑雪"].image, "/activity/snowboarding.jpg");
@@ -38,6 +43,12 @@ test("new activities resolve to dedicated activity image paths", () => {
 });
 
 test("activity slugs share the same source as activity names", () => {
+  assert.equal(backgrounds.getGuideImage("hiking-gear-checklist"), "/activity/hiking.jpg");
+  assert.equal(backgrounds.getGuideImage("camping-gear-checklist"), "/activity/camping.jpg");
+  assert.equal(backgrounds.getGuideImage("skiing-gear-checklist"), "/activity/skiing.jpg");
+  assert.equal(backgrounds.getGuideImage("fishing-gear-checklist"), "/activity/fishing.jpg");
+  assert.equal(backgrounds.getGuideImage("road-trip-gear-checklist"), "/activity/road-trip.jpg");
+  assert.notEqual(backgrounds.getGuideImage("road-trip-gear-checklist"), backgrounds.getGuideImage("hiking-gear-checklist"));
   assert.equal(backgrounds.getActivityBackgroundBySlug("trail-running").image, "/activity/trail-running.jpg");
   assert.equal(backgrounds.getActivityBackgroundBySlug("backpacking").image, "/activity/backpacking.jpg");
   assert.equal(backgrounds.getActivityBackgroundBySlug("climbing").image, "/activity/climbing.jpg");

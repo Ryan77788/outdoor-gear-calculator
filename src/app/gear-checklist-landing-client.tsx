@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { GearChecklistPage } from "@/app/gear-checklist-pages";
+import type { Activity } from "@/data/products";
 import { buildGearList, getRiskBlocks } from "@/lib/recommendation";
 import { getGearTierMeta, getGearTierStyle } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
-import { getActivityHeroImage } from "@/lib/activity-backgrounds";
+import { getGuideImage } from "@/lib/activity-backgrounds";
 import {
   getLanguageFromValue,
   localizeGearName,
@@ -42,10 +43,12 @@ const guideLabels = {
     faq: "FAQ",
     openPlanner: "Open Gear Planner",
     packingStrategy: "Packing Strategy",
+    relatedGuides: "Related Guides",
     riskAware: "Risk-aware reasoning",
     riskNotes: "Risk Notes",
     riskTitle: "Common Risk Reminders",
     scenarios: "Suitable Scenarios",
+    viewGuide: "View Guide",
   },
   zh: {
     analysis: "AI 推荐分析",
@@ -58,10 +61,12 @@ const guideLabels = {
     faq: "常见问题",
     openPlanner: "打开装备规划器",
     packingStrategy: "装备准备策略",
+    relatedGuides: "相关指南",
     riskAware: "风险感知推理",
     riskNotes: "风险提示",
     riskTitle: "常见风险提醒",
     scenarios: "适合场景",
+    viewGuide: "查看指南",
   },
 } as const;
 
@@ -80,6 +85,124 @@ type GuideDepthContent = {
   commonMistakes: string[];
   budgetTips: BudgetTip[];
   faqs?: GuideFaq[];
+};
+
+type RelatedGuide = {
+  slug: string;
+  activity: Activity;
+  title: Record<Language, string>;
+  description: Record<Language, string>;
+};
+
+const relatedGuideCatalog: Record<string, RelatedGuide> = {
+  hiking: {
+    slug: "hiking-gear-checklist",
+    activity: "徒步",
+    title: { en: "Hiking Gear Checklist", zh: "徒步装备清单" },
+    description: { en: "Plan footwear, layers, hydration, navigation, and safety gear for trail days.", zh: "规划鞋服、补水、导航和安全装备，适合山地和林道徒步。" },
+  },
+  camping: {
+    slug: "camping-gear-checklist",
+    activity: "露营",
+    title: { en: "Camping Gear Checklist", zh: "露营装备清单" },
+    description: { en: "Build a reliable camp setup for shelter, sleep, cooking, lighting, and food storage.", zh: "准备帐篷、睡眠、炉具、照明和食物收纳，搭建可靠营地。" },
+  },
+  skiing: {
+    slug: "skiing-gear-checklist",
+    activity: "滑雪",
+    title: { en: "Skiing Gear Checklist", zh: "滑雪装备清单" },
+    description: { en: "Prepare warm layers, snow protection, goggles, gloves, and mountain-day essentials.", zh: "准备保暖层、雪地防护、雪镜、手套和雪场一日装备。" },
+  },
+  fishing: {
+    slug: "fishing-gear-checklist",
+    activity: "钓鱼",
+    title: { en: "Fishing Gear Checklist", zh: "钓鱼装备清单" },
+    description: { en: "Organize rods, tackle, licenses, rain protection, storage, and water safety basics.", zh: "整理鱼竿、钓具、许可证、雨具、收纳和水边安全装备。" },
+  },
+  kayaking: {
+    slug: "kayaking",
+    activity: "皮划艇",
+    title: { en: "Kayaking Gear Checklist", zh: "皮划艇装备清单" },
+    description: { en: "Plan PFDs, dry bags, sun protection, quick-dry layers, and paddle safety gear.", zh: "准备救生衣、防水袋、防晒、速干层和水上安全装备。" },
+  },
+  desertHiking: {
+    slug: "desert-hiking",
+    activity: "沙漠徒步",
+    title: { en: "Desert Hiking Gear Checklist", zh: "沙漠徒步装备清单" },
+    description: { en: "Prioritize water capacity, sun protection, electrolytes, navigation, and heat safety.", zh: "优先规划水量、防晒、电解质、导航和高温风险余量。" },
+  },
+  climbing: {
+    slug: "climbing",
+    activity: "攀岩",
+    title: { en: "Climbing Gear Checklist", zh: "攀岩装备清单" },
+    description: { en: "Prepare safety gear, helmet, route planning, approach layers, and descent margin.", zh: "准备安全装备、头盔、路线信息、接近层和下降余量。" },
+  },
+  roadTrip: {
+    slug: "road-trip-gear-checklist",
+    activity: "自驾游",
+    title: { en: "Road Trip Gear Checklist", zh: "自驾游装备清单" },
+    description: { en: "Pack vehicle safety, charging, offline maps, food, comfort, and emergency readiness.", zh: "准备车辆安全、充电、离线地图、食物、舒适和应急装备。" },
+  },
+  backpacking: {
+    slug: "backpacking",
+    activity: "重装徒步",
+    title: { en: "Backpacking Gear Checklist", zh: "重装徒步装备清单" },
+    description: { en: "Plan shelter, sleep, cooking, water treatment, load carry, and multi-day trail margin.", zh: "规划庇护、睡眠、炉具、净水、背负和多日路线余量。" },
+  },
+  snowboarding: {
+    slug: "snowboarding",
+    activity: "单板滑雪",
+    title: { en: "Snowboarding Gear Checklist", zh: "单板滑雪装备清单" },
+    description: { en: "Prepare board setup, boots, helmet, goggles, fall protection, and winter layers.", zh: "准备雪板、雪靴、头盔、雪镜、防摔保护和冬季层次。" },
+  },
+  winterCamping: {
+    slug: "winter-camping",
+    activity: "冬季露营",
+    title: { en: "Winter Camping Gear Checklist", zh: "冬季露营装备清单" },
+    description: { en: "Build a cold-weather camp system for shelter, sleep insulation, cooking, and dry layers.", zh: "搭建寒冷环境下的庇护、睡眠保暖、炉具和干燥衣物系统。" },
+  },
+  beachCamping: {
+    slug: "beach-camping",
+    activity: "海边露营",
+    title: { en: "Beach Camping Gear Checklist", zh: "海边露营装备清单" },
+    description: { en: "Prepare for wind, sand, shade, dry storage, food cooling, and tide-aware campsites.", zh: "应对海风、沙地、遮阳、防水收纳、保冷和潮汐营地选择。" },
+  },
+  beachTravel: {
+    slug: "beach-travel-gear-checklist",
+    activity: "海边旅行",
+    title: { en: "Beach Travel Gear Checklist", zh: "海边旅行装备清单" },
+    description: { en: "Pack sun protection, dry storage, quick-dry clothing, beach comfort, and water safety.", zh: "准备防晒、防水收纳、速干衣物、海边舒适和涉水安全用品。" },
+  },
+  trailRunning: {
+    slug: "trail-running",
+    activity: "越野跑",
+    title: { en: "Trail Running Gear Checklist", zh: "越野跑装备清单" },
+    description: { en: "Plan shoes, hydration, lighting, nutrition, weather layers, and route safety.", zh: "规划跑鞋、补水、照明、补给、天气层和路线安全。" },
+  },
+  cycling: {
+    slug: "cycling-gear-checklist",
+    activity: "骑行",
+    title: { en: "Cycling Gear Checklist", zh: "骑行装备清单" },
+    description: { en: "Prepare helmet, repair kit, lights, hydration, nutrition, layers, and ride visibility.", zh: "准备头盔、维修包、车灯、补水、补给、衣物层和可见性装备。" },
+  },
+};
+
+const relatedGuideKeysBySlug: Record<string, string[]> = {
+  "hiking-gear-checklist": ["desertHiking", "camping", "climbing", "backpacking"],
+  "camping-gear-checklist": ["hiking", "roadTrip", "fishing", "kayaking"],
+  "skiing-gear-checklist": ["snowboarding", "winterCamping", "hiking", "roadTrip"],
+  "fishing-gear-checklist": ["kayaking", "camping", "roadTrip"],
+  kayaking: ["fishing", "camping", "roadTrip"],
+  "desert-hiking": ["hiking", "camping", "climbing"],
+  climbing: ["hiking", "desertHiking", "camping"],
+  "road-trip-gear-checklist": ["camping", "hiking", "fishing", "kayaking"],
+  backpacking: ["hiking", "camping", "desertHiking", "climbing"],
+  snowboarding: ["skiing", "winterCamping", "roadTrip"],
+  "winter-camping": ["camping", "skiing", "roadTrip"],
+  "beach-camping": ["camping", "kayaking", "fishing", "roadTrip"],
+  "beach-travel-gear-checklist": ["camping", "kayaking", "fishing"],
+  "trail-running": ["hiking", "desertHiking", "climbing"],
+  "cycling-gear-checklist": ["roadTrip", "hiking", "camping"],
 };
 
 const guideDepthContent: Record<Language, Record<string, GuideDepthContent>> = {
@@ -622,6 +745,12 @@ function getGuideDepthContent(page: GearChecklistPage, language: Language): Guid
   );
 }
 
+function getRelatedGuides(page: GearChecklistPage): RelatedGuide[] {
+  const keys = relatedGuideKeysBySlug[page.slug] ?? ["hiking", "camping", "roadTrip"];
+
+  return keys.map((key) => relatedGuideCatalog[key]).filter((guide): guide is RelatedGuide => Boolean(guide));
+}
+
 export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }) {
   const [language, setLanguage] = useState<Language>("en");
 
@@ -637,8 +766,9 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   const analysis = buildRecommendationAnalysis({ ...page.analysisContext, language });
   const tierMeta = getGearTierMeta(page.tier, language);
   const tierStyle = getGearTierStyle(page.tier);
-  const heroImage = getActivityHeroImage(page.analysisContext.activity);
+  const heroImage = getGuideImage(page.slug);
   const depthContent = getGuideDepthContent(page, language);
+  const relatedGuides = getRelatedGuides(page);
   const activitySlug = activitySlugByActivity[page.analysisContext.activity] ?? page.slug;
   const plannerHref = `/?activity=${activitySlug}&lang=${language}`;
 
@@ -824,6 +954,36 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
                 <h2 className="text-base font-black leading-6 text-slate-950">{faq.question}</h2>
                 <p className="mt-3 text-sm leading-6 text-slate-700">{faq.answer}</p>
               </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-8 rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{labels.relatedGuides}</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+            {relatedGuides.map((guide) => (
+              <Link
+                className="group relative isolate min-h-[230px] overflow-hidden rounded-2xl border border-white/25 bg-slate-950 p-5 text-white shadow-lg shadow-emerald-950/10 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/20 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+                href={`/${guide.slug}?lang=${language}`}
+                key={guide.slug}
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 -z-20 bg-cover bg-center transition duration-500 group-hover:scale-105"
+                  style={{ backgroundImage: `url("${getGuideImage(guide.slug)}")` }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.24),rgba(2,6,23,0.82)),linear-gradient(90deg,rgba(6,78,59,0.58),rgba(15,23,42,0.14))]"
+                />
+                <div className="flex min-h-[190px] flex-col justify-end">
+                  <h2 className="text-xl font-black leading-7 drop-shadow-sm">{guide.title[language]}</h2>
+                  <p className="mt-3 text-sm leading-6 text-white/82">{guide.description[language]}</p>
+                  <span className="mt-5 w-fit rounded-xl border border-white/25 bg-white/16 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white backdrop-blur-xl transition group-hover:bg-white group-hover:text-emerald-950">
+                    {labels.viewGuide}
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

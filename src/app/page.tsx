@@ -38,7 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getActivityBackground, getShareCardBackground } from "@/lib/activity-backgrounds";
+import { getActivityBackground, getGuideImage, getShareCardBackground } from "@/lib/activity-backgrounds";
 
 type IconName = RiskIconName;
 
@@ -1065,18 +1065,33 @@ export default function Home() {
           </div>
           <p className="max-w-2xl text-sm leading-6 text-slate-600">{siteNavLabels.guidesDescription}</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {activityGuideCards.map((guide) => (
             <a
-              className="group flex min-h-44 flex-col rounded-2xl border border-white bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+              className="group relative isolate flex min-h-64 flex-col justify-between overflow-hidden rounded-2xl border border-white/30 bg-slate-950 p-4 text-white shadow-sm ring-1 ring-slate-200/30 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
               href={`${guide.href}?lang=${language}`}
               key={guide.key}
             >
-              <h3 className="text-lg font-black text-slate-950">{guide.title[language]}</h3>
-              <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{guide.description[language]}</p>
-              <span className="mt-4 inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800 ring-1 ring-emerald-100 transition group-hover:bg-emerald-100">
-                {siteNavLabels.viewGuide}
-              </span>
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 -z-20 bg-cover bg-center transition duration-500 group-hover:scale-105"
+                style={{ backgroundImage: `url("${getGuideImage(guide.href.replace("/", ""))}")` }}
+              />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.34)_0%,rgba(2,6,23,0.54)_42%,rgba(2,6,23,0.9)_100%),linear-gradient(90deg,rgba(6,78,59,0.42),rgba(15,23,42,0.18))]"
+              />
+              <div>
+                <h3 className="max-w-[12rem] text-lg font-black leading-6 drop-shadow-sm">{guide.title[language]}</h3>
+              </div>
+              <div className="my-5">
+                <p className="max-w-[18rem] text-sm leading-6 text-white/82 drop-shadow-sm">{guide.description[language]}</p>
+              </div>
+              <div className="flex">
+                <span className="self-start rounded-lg border border-white/25 bg-white/14 px-3 py-1.5 text-xs font-black text-white shadow-sm backdrop-blur-xl transition group-hover:bg-white/24 group-hover:text-white">
+                  {siteNavLabels.viewGuide}
+                </span>
+              </div>
             </a>
           ))}
         </div>

@@ -90,10 +90,13 @@ test("share backgrounds resolve to existing activity-specific assets", () => {
   assert.equal(backgrounds.getActivityBackground("Desert Hiking").image, "/activity/desert-hiking.jpg");
   assert.equal(backgrounds.getActivityBackground("desert-hiking").image, "/activity/desert-hiking.jpg");
   assert.equal(backgrounds.getShareCardBackground("沙漠徒步").image, "/activity/desert-hiking.jpg");
-  assert.equal(backgrounds.getShareCardBackground("roadtrip").image, "/share-roadtrip.jpg");
-  assert.equal(backgrounds.getShareCardBackground("self-driving").image, "/share-roadtrip.jpg");
+  assert.equal(backgrounds.getShareCardBackground("roadtrip").image, "/activity/road-trip.jpg");
+  assert.equal(backgrounds.getShareCardBackground("self-driving").image, "/activity/road-trip.jpg");
   assert.equal(backgrounds.getShareCardBackground("unknown-activity").image, "/neutral-outdoor.jpg");
   assert.notEqual(backgrounds.getShareCardBackground("unknown-activity").image, "/share-hiking.jpg");
+  assert.equal(backgrounds.getGuideImage("hiking-gear-checklist"), "/activity/hiking.jpg");
+  assert.equal(backgrounds.getGuideImage("road-trip-gear-checklist"), "/activity/road-trip.jpg");
+  assert.notEqual(backgrounds.getGuideImage("road-trip-gear-checklist"), backgrounds.getGuideImage("hiking-gear-checklist"));
 });
 
 test("share image poster uses real recommendation details instead of fake budget bars", () => {
@@ -164,10 +167,24 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(guideClientSource.includes("Common Mistakes"), "guide pages should include common mistakes section");
   assert.ok(guideClientSource.includes("Budget Tips"), "guide pages should include budget tips section");
   assert.ok(guideClientSource.includes("FAQ"), "guide pages should include FAQ section");
+  assert.ok(guideClientSource.includes("Related Guides"), "guide pages should include related guides section");
   assert.ok(guideClientSource.includes("装备准备策略"), "guide pages should include Chinese packing strategy label");
   assert.ok(guideClientSource.includes("常见错误"), "guide pages should include Chinese common mistakes label");
   assert.ok(guideClientSource.includes("预算建议"), "guide pages should include Chinese budget tips label");
   assert.ok(guideClientSource.includes("常见问题"), "guide pages should include Chinese FAQ label");
+  assert.ok(guideClientSource.includes("相关指南"), "guide pages should include Chinese related guides label");
+  assert.ok(guideClientSource.includes("relatedGuideKeysBySlug"), "guide pages should map related guides by current slug");
+  assert.ok(source.includes("getGuideImage(guide.href.replace"), "home activity guide cards should use guide image mapping");
+  assert.ok(source.includes("grid gap-4 md:grid-cols-2 lg:grid-cols-4"), "home activity guides should use 1/2/4 responsive columns");
+  assert.ok(source.includes("flex min-h-64 flex-col justify-between"), "home activity guide cards should use vertical content flow");
+  assert.ok(source.includes("self-start rounded-lg"), "home activity guide CTA should be a small rounded button");
+  assert.ok(!source.includes("mt-4 inline-flex w-fit items-center rounded-full border border-white/25"), "home activity guide CTA should not use the old large pill overlay style");
+  assert.ok(guideClientSource.includes("getGuideImage(page.slug)"), "SEO guide hero should use guide image mapping");
+  assert.ok(guideClientSource.includes("getGuideImage(guide.slug)"), "related guide cards should use guide image mapping");
+  assert.ok(guideClientSource.includes('href={`/${guide.slug}?lang=${language}`}'), "related guide links should preserve language");
+  assert.ok(guideClientSource.includes("hover:-translate-y-1"), "related guide cards should animate on hover");
+  assert.ok(guideClientSource.includes("Kayaking Gear Checklist"), "fishing related guides should include kayaking");
+  assert.ok(guideClientSource.includes("Climbing Gear Checklist"), "desert hiking related guides should include climbing");
   assert.ok(guideClientSource.includes("What gear do I need for hiking?"), "hiking guide should include search-oriented FAQ");
   assert.ok(guideClientSource.includes("What should I pack for rainy fishing?"), "fishing guide should include rain-specific FAQ");
   assert.ok(guideClientSource.includes("How do I prepare for a remote road trip?"), "road trip guide should include remote route FAQ");
