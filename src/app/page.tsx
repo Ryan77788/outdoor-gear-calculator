@@ -672,6 +672,18 @@ export default function Home() {
             { activity: "皮划艇" as Activity, title: "Kayaking and water activities", text: "Prepare dry storage, PFDs, sun protection, and on-water safety." },
           ],
         };
+  const bottomCta =
+    language === "zh"
+      ? {
+          title: "准备生成你的户外装备方案了吗？",
+          subtitle: "选择活动、天气、人数和预算，快速生成更贴近真实出行场景的装备清单。",
+          button: "开始规划",
+        }
+      : {
+          title: "Ready to build your outdoor gear plan?",
+          subtitle: "Choose your activity, weather, group size and budget. Get a practical gear checklist in seconds.",
+          button: "Start planning",
+        };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -679,6 +691,10 @@ export default function Home() {
 
   function handleStartUseCase(activity: Activity) {
     updateField("activity", activity);
+    document.getElementById("gear-planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleBottomCtaClick() {
     document.getElementById("gear-planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -1983,6 +1999,26 @@ export default function Home() {
         </section>
         </>
       )}
+      <section className="mx-auto max-w-6xl px-6 pb-12 pt-2" aria-labelledby="bottom-cta">
+        <div className="overflow-hidden rounded-2xl border border-emerald-900/20 bg-[linear-gradient(135deg,#052e1c_0%,#166534_48%,#84cc16_120%)] p-6 text-white shadow-2xl shadow-emerald-950/18">
+          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-lime-100">Outdoor Gear Calculator</p>
+              <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight" id="bottom-cta">
+                {bottomCta.title}
+              </h2>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-emerald-50/86">{bottomCta.subtitle}</p>
+            </div>
+            <button
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-50 px-6 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 transition hover:-translate-y-0.5 hover:bg-white focus:outline-none focus:ring-4 focus:ring-lime-200/70"
+              onClick={handleBottomCtaClick}
+              type="button"
+            >
+              {bottomCta.button}
+            </button>
+          </div>
+        </div>
+      </section>
       <SiteFooter language={language} />
     </main>
   );

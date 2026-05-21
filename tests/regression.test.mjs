@@ -229,6 +229,18 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes('document.getElementById("gear-planner")?.scrollIntoView'), "use case buttons should scroll to the planner");
   assert.ok(source.indexOf("aria-labelledby=\"trust-how-it-works\"") < source.indexOf("aria-labelledby=\"use-cases\""), "use cases should appear below the How it works module");
   assert.ok(source.indexOf("aria-labelledby=\"use-cases\"") < source.indexOf("{showResult &&"), "use cases should appear above the result area");
+  for (const bottomCtaToken of [
+    "Ready to build your outdoor gear plan?",
+    "Choose your activity, weather, group size and budget. Get a practical gear checklist in seconds.",
+    "准备生成你的户外装备方案了吗？",
+    "选择活动、天气、人数和预算，快速生成更贴近真实出行场景的装备清单。",
+  ]) {
+    assert.ok(source.includes(bottomCtaToken), `home bottom CTA should include ${bottomCtaToken}`);
+  }
+  assert.ok(source.includes("bottomCta"), "home should define localized bottom CTA copy");
+  assert.ok(source.includes("handleBottomCtaClick"), "bottom CTA should have a planner scroll handler");
+  assert.ok(source.indexOf("{showResult &&") < source.indexOf("aria-labelledby=\"bottom-cta\""), "bottom CTA should be near the footer after main content");
+  assert.ok(source.indexOf("aria-labelledby=\"bottom-cta\"") < source.indexOf("<SiteFooter language={language} />"), "bottom CTA should appear before the footer");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");
