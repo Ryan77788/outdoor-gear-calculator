@@ -186,6 +186,24 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes("flex min-h-64 flex-col justify-between"), "home activity guide cards should use vertical content flow");
   assert.ok(source.includes("self-start rounded-lg"), "home activity guide CTA should be a small rounded button");
   assert.ok(!source.includes("mt-4 inline-flex w-fit items-center rounded-full border border-white/25"), "home activity guide CTA should not use the old large pill overlay style");
+  for (const trustToken of [
+    "How it works",
+    "Choose your activity",
+    "Set weather, trip length and budget",
+    "Get a tailored gear plan",
+    "Why it helps",
+    "Avoid missing essential gear",
+    "Balance budget and safety",
+    "Share plans with your group",
+    "工作原理",
+    "为什么有用",
+    "选择活动类型",
+    "避免遗漏关键装备",
+  ]) {
+    assert.ok(source.includes(trustToken), `home trust module should include ${trustToken}`);
+  }
+  assert.ok(source.indexOf("id=\"gear-planner\"") < source.indexOf("aria-labelledby=\"trust-how-it-works\""), "trust module should appear below the gear planner form");
+  assert.ok(source.indexOf("aria-labelledby=\"trust-how-it-works\"") < source.indexOf("{showResult &&"), "trust module should appear above the result area");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");

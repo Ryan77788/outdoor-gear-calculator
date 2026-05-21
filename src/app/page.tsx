@@ -610,6 +610,40 @@ export default function Home() {
           viewGuide: "View guide",
         };
   const localizedSectionHref = (sectionId: string) => `/?lang=${language}#${sectionId}`;
+  const trustModule =
+    language === "zh"
+      ? {
+          howTitle: "工作原理",
+          howDescription: "用三个输入步骤，把模糊的出行计划变成可执行的装备方案。",
+          whyTitle: "为什么有用",
+          whyDescription: "减少漏带、预算失衡和团队沟通成本。",
+          steps: [
+            { title: "选择活动类型", text: "从徒步、露营、自驾游等活动开始。" },
+            { title: "设置天气、天数和预算", text: "把环境、行程长度和预算边界说清楚。" },
+            { title: "获得定制装备方案", text: "查看必备装备、产品组合和风险提醒。" },
+          ],
+          benefits: [
+            { title: "避免遗漏关键装备", text: "优先覆盖安全、天气和完成行程所需装备。" },
+            { title: "平衡预算和安全", text: "在预算内突出核心装备，减少无效购买。" },
+            { title: "与同行者分享方案", text: "保存或分享计划，让团队准备更一致。" },
+          ],
+        }
+      : {
+          howTitle: "How it works",
+          howDescription: "Turn a rough trip idea into a practical gear plan in three quick steps.",
+          whyTitle: "Why it helps",
+          whyDescription: "Reduce missed essentials, budget guesswork, and group-planning friction.",
+          steps: [
+            { title: "Choose your activity", text: "Start with hiking, camping, road trips, and more." },
+            { title: "Set weather, trip length and budget", text: "Add the conditions and limits that shape the kit." },
+            { title: "Get a tailored gear plan", text: "Review essentials, product picks, and risk reminders." },
+          ],
+          benefits: [
+            { title: "Avoid missing essential gear", text: "Keep safety, weather, and trip-critical items visible." },
+            { title: "Balance budget and safety", text: "Prioritize core gear before comfort upgrades." },
+            { title: "Share plans with your group", text: "Save or share a plan so everyone packs from the same page." },
+          ],
+        };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -1054,6 +1088,47 @@ export default function Home() {
             >
               {t.generateGearList}
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-10" aria-labelledby="trust-how-it-works">
+        <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">Outdoor Trust</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950" id="trust-how-it-works">
+                {trustModule.howTitle}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{trustModule.howDescription}</p>
+              <div className="mt-5 grid gap-3">
+                {trustModule.steps.map((step, index) => (
+                  <article className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4" key={step.title}>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-sm font-black text-white shadow-sm">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h3 className="font-black text-slate-950">{step.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{step.text}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-lime-700">{trustModule.whyTitle}</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">{trustModule.whyTitle}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{trustModule.whyDescription}</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {trustModule.benefits.map((benefit) => (
+                  <article className="rounded-xl border border-slate-200 bg-slate-50/85 p-4 shadow-sm" key={benefit.title}>
+                    <h3 className="font-black leading-6 text-slate-950">{benefit.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{benefit.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
