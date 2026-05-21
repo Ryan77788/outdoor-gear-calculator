@@ -275,6 +275,18 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes("setIsGeneratingGearList(false)"), "Generate Gear List should always restore loading state");
   assert.ok(source.includes("disabled={isGeneratingGearList}"), "Generate Gear List button should be disabled while generating");
   assert.ok(source.includes("isGeneratingGearList ? t.generating : t.generateGearList"), "Generate Gear List button should show localized loading text");
+  assert.ok(source.includes("FormErrors"), "Gear Planner should track validation errors");
+  assert.ok(source.includes("validatePlannerForm"), "Gear Planner should validate people and budget before generating");
+  assert.ok(source.includes("People must be at least 1."), "people validation should include English copy");
+  assert.ok(source.includes("Budget must be at least 100."), "budget validation should include English copy");
+  assert.ok(source.includes("人数至少为 1。"), "people validation should include Chinese copy");
+  assert.ok(source.includes("预算至少为 100。"), "budget validation should include Chinese copy");
+  assert.ok(source.includes("form.peopleCount < 1"), "people validation should reject values below 1");
+  assert.ok(source.includes("form.budget < 100"), "budget validation should reject values below 100");
+  assert.ok(source.includes("setShouldScrollToResults(true)") && source.indexOf("validatePlannerForm") < source.indexOf("setShouldScrollToResults(true)"), "validation should run before result scrolling is requested");
+  assert.ok(source.includes("Math.min(20"), "people input should cap values at 20");
+  assert.ok(source.includes("Math.min(50000"), "budget input should cap values at 50000");
+  assert.ok(source.includes("border-rose"), "invalid inputs should use a subtle red error style");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");

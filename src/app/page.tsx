@@ -51,6 +51,8 @@ type FormState = {
   budget: number;
 };
 
+type FormErrors = Partial<Record<"peopleCount" | "budget", string>>;
+
 type SavedPlan = FormState & {
   _id: string;
   gearTier?: GearTier;
@@ -470,6 +472,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [form, setForm] = useState<FormState>({
     activity: "露营",
     tripDays: "1天",
@@ -622,6 +625,16 @@ export default function Home() {
           unitPrice: "Unit price",
           weather: "Weather",
         };
+  const plannerValidationMessages =
+    language === "zh"
+      ? {
+          peopleMin: "人数至少为 1。",
+          budgetMin: "预算至少为 100。",
+        }
+      : {
+          peopleMin: "People must be at least 1.",
+          budgetMin: "Budget must be at least 100.",
+        };
   const siteNavLabels =
     language === "zh"
       ? {
@@ -736,6 +749,39 @@ export default function Home() {
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
+
+    if (name === "peopleCount" && typeof value === "number" && value >= 1) {
+      setFormErrors((current) => {
+        if (!current.peopleCount) return current;
+        const next = { ...current };
+        delete next.peopleCount;
+        return next;
+      });
+    }
+
+    if (name === "budget" && typeof value === "number" && value >= 100) {
+      setFormErrors((current) => {
+        if (!current.budget) return current;
+        const next = { ...current };
+        delete next.budget;
+        return next;
+      });
+    }
+  }
+
+  function validatePlannerForm() {
+    const nextErrors: FormErrors = {};
+
+    if (form.peopleCount < 1) {
+      nextErrors.peopleCount = plannerValidationMessages.peopleMin;
+    }
+
+    if (form.budget < 100) {
+      nextErrors.budget = plannerValidationMessages.budgetMin;
+    }
+
+    setFormErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   }
 
   function handleStartUseCase(activity: Activity) {
@@ -830,6 +876,10 @@ export default function Home() {
 
   async function handleGenerate() {
     if (isGeneratingGearList) {
+      return;
+    }
+
+    if (!validatePlannerForm()) {
       return;
     }
 
@@ -1194,13 +1244,21 @@ export default function Home() {
                 {t.peopleCount}
               </span>
               <input
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                className={`h-12 w-full rounded-xl border px-4 text-slate-900 outline-none transition group-hover:bg-white focus:bg-white focus:ring-4 ${
+                  formErrors.peopleCount
+                    ? "border-rose-300 bg-rose-50/80 focus:border-rose-500 focus:ring-rose-100"
+                    : "border-slate-200 bg-slate-50/90 group-hover:border-emerald-200 focus:border-emerald-600 focus:ring-emerald-100"
+                }`}
                 max={20}
                 min={1}
                 type="number"
                 value={form.peopleCount}
-                onChange={(event) => updateField("peopleCount", Math.max(1, Number(event.target.value) || 1))}
+                onChange={(event) => {
+                  const nextValue = event.target.value === "" ? 1 : Number(event.target.value);
+                  updateField("peopleCount", Math.min(20, Number.isFinite(nextValue) ? nextValue : 1));
+                }}
               />
+              {formErrors.peopleCount && <p className="mt-2 text-xs font-bold text-rose-700">{formErrors.peopleCount}</p>}
             </label>
 
             <label className="group block">
@@ -1209,13 +1267,22 @@ export default function Home() {
                 {t.budget}
               </span>
               <input
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition group-hover:border-emerald-200 group-hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                min={0}
+                className={`h-12 w-full rounded-xl border px-4 text-slate-900 outline-none transition group-hover:bg-white focus:bg-white focus:ring-4 ${
+                  formErrors.budget
+                    ? "border-rose-300 bg-rose-50/80 focus:border-rose-500 focus:ring-rose-100"
+                    : "border-slate-200 bg-slate-50/90 group-hover:border-emerald-200 focus:border-emerald-600 focus:ring-emerald-100"
+                }`}
+                max={50000}
+                min={100}
                 step={50}
                 type="number"
                 value={form.budget}
-                onChange={(event) => updateField("budget", Math.max(0, Number(event.target.value) || 0))}
+                onChange={(event) => {
+                  const nextValue = event.target.value === "" ? 1000 : Number(event.target.value);
+                  updateField("budget", Math.min(50000, Number.isFinite(nextValue) ? nextValue : 1000));
+                }}
               />
+              {formErrors.budget && <p className="mt-2 text-xs font-bold text-rose-700">{formErrors.budget}</p>}
               <p className="mt-2 text-xs leading-5 text-slate-500">
                 {t.budgetHint}
               </p>
