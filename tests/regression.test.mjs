@@ -241,6 +241,35 @@ test("home page exposes site navigation and activity guide entries", () => {
   assert.ok(source.includes("handleBottomCtaClick"), "bottom CTA should have a planner scroll handler");
   assert.ok(source.indexOf("{showResult &&") < source.indexOf("aria-labelledby=\"bottom-cta\""), "bottom CTA should be near the footer after main content");
   assert.ok(source.indexOf("aria-labelledby=\"bottom-cta\"") < source.indexOf("<SiteFooter language={language} />"), "bottom CTA should appear before the footer");
+  for (const emailToken of [
+    "Get smarter outdoor packing tips",
+    "Receive practical gear checklists, trip planning tips and future product updates.",
+    "Enter your email",
+    "Subscribe",
+    "Thanks for subscribing!",
+    "获取更实用的户外装备建议",
+    "订阅装备清单、出行规划技巧和后续产品更新。",
+    "输入你的邮箱",
+    "订阅",
+    "订阅成功！",
+  ]) {
+    assert.ok(source.includes(emailToken), `home email capture should include ${emailToken}`);
+  }
+  assert.ok(source.includes("emailCapture"), "home should define localized email capture copy");
+  assert.ok(source.includes("handleEmailSubscribe"), "email capture should have a submit handler");
+  assert.ok(source.includes('type: "email_subscribe"'), "email capture should log email_subscribe");
+  assert.ok(source.includes("data: {"), "email subscribe log should include a data object");
+  assert.ok(source.includes("email,"), "email subscribe log should include email");
+  assert.ok(source.includes("language,"), "email subscribe log should include language");
+  assert.ok(source.includes("createdAt: new Date().toISOString()"), "email subscribe log should include createdAt");
+  assert.ok(source.includes("emailPattern"), "email capture should validate email format");
+  assert.ok(source.indexOf("aria-labelledby=\"email-capture\"") < source.indexOf("aria-labelledby=\"bottom-cta\""), "email capture should appear above bottom CTA");
+  assert.ok(source.includes("resultsRef"), "home should keep a ref to the generated results area");
+  assert.ok(source.includes("shouldScrollToResults"), "home should defer result scrolling until generation succeeds");
+  assert.ok(source.includes("setShouldScrollToResults(true)"), "generate action should request a result scroll after showing results");
+  assert.ok(source.includes("getBoundingClientRect"), "result scroll should check whether the user is already near the result area");
+  assert.ok(source.includes("scrollIntoView({ behavior: \"smooth\" })"), "result area should smooth scroll after it renders");
+  assert.ok(source.includes('id="gear-results"'), "generated results should expose a Gear Results anchor");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");

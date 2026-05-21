@@ -456,14 +456,19 @@ function getShareFeatureTags(products: Product[], weather: Weather, tripDays: Tr
 
 export default function Home() {
   const exportRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLElement | null>(null);
   const [language, setLanguage] = useState<Language>("en");
   const [showResult, setShowResult] = useState(false);
+  const [shouldScrollToResults, setShouldScrollToResults] = useState(false);
   const [savePlanStatus, setSavePlanStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [form, setForm] = useState<FormState>({
     activity: "露营",
     tripDays: "1天",
@@ -495,6 +500,31 @@ export default function Home() {
   useEffect(() => {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   }, [language]);
+
+  useEffect(() => {
+    if (!shouldScrollToResults || !showResult) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const target = resultsRef.current;
+
+      if (!target) {
+        setShouldScrollToResults(false);
+        return;
+      }
+
+      const distanceFromResults = Math.abs(target.getBoundingClientRect().top);
+
+      if (distanceFromResults > 160) {
+        target.scrollIntoView({ behavior: "smooth" });
+      }
+
+      setShouldScrollToResults(false);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [shouldScrollToResults, showResult]);
 
   const gearList = useMemo(
     () => buildGearList(form.activity, form.tripDays, form.weather, form.peopleCount, form.budget),
@@ -684,6 +714,24 @@ export default function Home() {
           subtitle: "Choose your activity, weather, group size and budget. Get a practical gear checklist in seconds.",
           button: "Start planning",
         };
+  const emailCapture =
+    language === "zh"
+      ? {
+          title: "获取更实用的户外装备建议",
+          subtitle: "订阅装备清单、出行规划技巧和后续产品更新。",
+          placeholder: "输入你的邮箱",
+          button: "订阅",
+          success: "订阅成功！",
+          error: "请输入有效的邮箱地址。",
+        }
+      : {
+          title: "Get smarter outdoor packing tips",
+          subtitle: "Receive practical gear checklists, trip planning tips and future product updates.",
+          placeholder: "Enter your email",
+          button: "Subscribe",
+          success: "Thanks for subscribing!",
+          error: "Enter a valid email address.",
+        };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -696,6 +744,47 @@ export default function Home() {
 
   function handleBottomCtaClick() {
     document.getElementById("gear-planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function handleEmailSubscribe(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const normalizedEmail = email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(normalizedEmail)) {
+      setEmailStatus("error");
+      return;
+    }
+
+    setIsSubscribing(true);
+
+    try {
+      const response = await fetch("/api/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "email_subscribe",
+          data: {
+            email: normalizedEmail,
+            language,
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Email subscribe failed with status ${response.status}`);
+      }
+
+      setEmailStatus("success");
+      setEmail("");
+    } catch (error) {
+      console.error("Failed to subscribe email:", error);
+      setEmailStatus("error");
+    } finally {
+      setIsSubscribing(false);
+    }
   }
 
   async function loadSavedPlans() {
@@ -740,6 +829,7 @@ export default function Home() {
 
   async function handleGenerate() {
     setShowResult(true);
+    setShouldScrollToResults(true);
 
     try {
       await fetch("/api/log", {
@@ -1254,7 +1344,7 @@ export default function Home() {
 
       {showResult && (
         <>
-        <section className="mx-auto max-w-6xl px-6 pt-8">
+        <section id="gear-results" ref={resultsRef} className="mx-auto max-w-6xl px-6 pt-8">
           <div className="rounded-2xl border border-white bg-white/94 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
             <div className="mb-5 grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-stretch">
               <div>
@@ -1999,6 +2089,47 @@ export default function Home() {
         </section>
         </>
       )}
+      <section className="mx-auto max-w-6xl px-6 pb-6 pt-2" aria-labelledby="email-capture">
+        <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
+          <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">Email Capture</p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950" id="email-capture">
+                {emailCapture.title}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{emailCapture.subtitle}</p>
+            </div>
+            <form className="grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={handleEmailSubscribe}>
+              <label className="sr-only" htmlFor="email-capture-input">
+                {emailCapture.placeholder}
+              </label>
+              <input
+                className="h-12 rounded-xl border border-slate-200 bg-slate-50/90 px-4 text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-emerald-200 hover:bg-white focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                id="email-capture-input"
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (emailStatus !== "idle") setEmailStatus("idle");
+                }}
+                placeholder={emailCapture.placeholder}
+                type="email"
+                value={email}
+              />
+              <button
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-700 px-6 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isSubscribing}
+                type="submit"
+              >
+                {emailCapture.button}
+              </button>
+              {emailStatus !== "idle" && (
+                <p className={`sm:col-span-2 text-sm font-bold ${emailStatus === "success" ? "text-emerald-700" : "text-rose-700"}`}>
+                  {emailStatus === "success" ? emailCapture.success : emailCapture.error}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
+      </section>
       <section className="mx-auto max-w-6xl px-6 pb-12 pt-2" aria-labelledby="bottom-cta">
         <div className="overflow-hidden rounded-2xl border border-emerald-900/20 bg-[linear-gradient(135deg,#052e1c_0%,#166534_48%,#84cc16_120%)] p-6 text-white shadow-2xl shadow-emerald-950/18">
           <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
