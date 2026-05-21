@@ -204,6 +204,31 @@ test("home page exposes site navigation and activity guide entries", () => {
   }
   assert.ok(source.indexOf("id=\"gear-planner\"") < source.indexOf("aria-labelledby=\"trust-how-it-works\""), "trust module should appear below the gear planner form");
   assert.ok(source.indexOf("aria-labelledby=\"trust-how-it-works\"") < source.indexOf("{showResult &&"), "trust module should appear above the result area");
+  for (const useCaseToken of [
+    "Use Cases",
+    "Weekend camping trips",
+    "Ski trips with friends",
+    "Family road trips",
+    "Fishing day trips",
+    "Desert hiking planning",
+    "Kayaking and water activities",
+    "Start planning",
+    "适用场景",
+    "周末露营",
+    "朋友滑雪出行",
+    "家庭自驾游",
+    "一日钓鱼",
+    "沙漠徒步规划",
+    "皮划艇和水上活动",
+    "开始规划",
+  ]) {
+    assert.ok(source.includes(useCaseToken), `home use cases module should include ${useCaseToken}`);
+  }
+  assert.ok(source.includes("handleStartUseCase"), "use case cards should have a start-planning handler");
+  assert.ok(source.includes('updateField("activity", activity)'), "use case buttons should select the matching activity");
+  assert.ok(source.includes('document.getElementById("gear-planner")?.scrollIntoView'), "use case buttons should scroll to the planner");
+  assert.ok(source.indexOf("aria-labelledby=\"trust-how-it-works\"") < source.indexOf("aria-labelledby=\"use-cases\""), "use cases should appear below the How it works module");
+  assert.ok(source.indexOf("aria-labelledby=\"use-cases\"") < source.indexOf("{showResult &&"), "use cases should appear above the result area");
   assert.ok(source.includes("<SiteFooter language={language} />"), "home page should render the shared localized footer");
   assert.ok(guideClientSource.includes("<SiteFooter language={language} />"), "guide pages should render the shared localized footer");
   assert.ok(footerSource.includes("Outdoor AI"), "footer should include Outdoor AI brand copy");

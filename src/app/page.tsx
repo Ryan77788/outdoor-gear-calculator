@@ -644,9 +644,42 @@ export default function Home() {
             { title: "Share plans with your group", text: "Save or share a plan so everyone packs from the same page." },
           ],
         };
+  const useCases =
+    language === "zh"
+      ? {
+          title: "适用场景",
+          description: "选择一个典型出行场景，系统会先帮你填好对应活动。",
+          button: "开始规划",
+          items: [
+            { activity: "露营" as Activity, title: "周末露营", text: "适合两三天营地休息、做饭和夜间照明准备。" },
+            { activity: "滑雪" as Activity, title: "朋友滑雪出行", text: "覆盖保暖、防护和雪场一日装备。" },
+            { activity: "自驾游" as Activity, title: "家庭自驾游", text: "整理车载工具、电源、急救和途中补给。" },
+            { activity: "钓鱼" as Activity, title: "一日钓鱼", text: "兼顾钓具、防晒、收纳和水边舒适度。" },
+            { activity: "沙漠徒步" as Activity, title: "沙漠徒步规划", text: "突出补水、防晒、电解质和暴露环境风险。" },
+            { activity: "皮划艇" as Activity, title: "皮划艇和水上活动", text: "准备防水收纳、救生衣、防晒和水上安全。" },
+          ],
+        }
+      : {
+          title: "Use Cases",
+          description: "Pick a common trip scenario and start with the matching activity already selected.",
+          button: "Start planning",
+          items: [
+            { activity: "露营" as Activity, title: "Weekend camping trips", text: "Plan shelter, sleep, cooking, lighting, and camp comfort." },
+            { activity: "滑雪" as Activity, title: "Ski trips with friends", text: "Cover warmth, protection, gloves, goggles, and snow-day essentials." },
+            { activity: "自驾游" as Activity, title: "Family road trips", text: "Organize vehicle tools, power, first aid, food, and comfort gear." },
+            { activity: "钓鱼" as Activity, title: "Fishing day trips", text: "Balance tackle, shade, storage, cooling, and waterside comfort." },
+            { activity: "沙漠徒步" as Activity, title: "Desert hiking planning", text: "Prioritize water, sun protection, electrolytes, and exposure margin." },
+            { activity: "皮划艇" as Activity, title: "Kayaking and water activities", text: "Prepare dry storage, PFDs, sun protection, and on-water safety." },
+          ],
+        };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleStartUseCase(activity: Activity) {
+    updateField("activity", activity);
+    document.getElementById("gear-planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function loadSavedPlans() {
@@ -1130,6 +1163,36 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-10" aria-labelledby="use-cases">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">Trip Scenarios</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950" id="use-cases">
+              {useCases.title}
+            </h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-slate-600">{useCases.description}</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {useCases.items.map((useCase) => (
+            <article
+              className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/10"
+              key={useCase.title}
+            >
+              <h3 className="text-lg font-black leading-6 text-slate-950">{useCase.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{useCase.text}</p>
+              <button
+                className="mt-5 inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+                onClick={() => handleStartUseCase(useCase.activity)}
+                type="button"
+              >
+                {useCases.button}
+              </button>
+            </article>
+          ))}
         </div>
       </section>
 
