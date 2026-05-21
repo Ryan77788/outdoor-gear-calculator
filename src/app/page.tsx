@@ -609,6 +609,7 @@ export default function Home() {
           guidesDescription: "Explore focused gear checklists by activity, then come back to build your own plan.",
           viewGuide: "View guide",
         };
+  const localizedSectionHref = (sectionId: string) => `/?lang=${language}#${sectionId}`;
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -774,7 +775,7 @@ export default function Home() {
 
   async function handleCopyShareLink(planId: string) {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}?lang=${language}`);
       await logUserBehavior("share_link_copy", {
         planId,
         activity: form.activity,
@@ -792,8 +793,7 @@ export default function Home() {
   }
 
   function handleViewSavedPlan(planId: string) {
-    const langParam = language === "zh" ? "?lang=zh" : "";
-    window.open(`/plan/${planId}${langParam}`, "_blank");
+    window.open(`/plan/${planId}?lang=${language}`, "_blank");
   }
 
   async function handleGenerateShareImage() {
@@ -920,9 +920,9 @@ export default function Home() {
 
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-6 pt-6 text-sm font-black text-white">
           {[
-            { href: "#gear-planner", label: siteNavLabels.planner },
-            { href: "#activity-guides", label: siteNavLabels.guides },
-            { href: "#saved-plans", label: siteNavLabels.saved },
+            { href: localizedSectionHref("gear-planner"), label: siteNavLabels.planner },
+            { href: localizedSectionHref("activity-guides"), label: siteNavLabels.guides },
+            { href: localizedSectionHref("saved-plans"), label: siteNavLabels.saved },
           ].map((item) => (
             <a
               className="rounded-full border border-white/25 bg-white/14 px-4 py-2 shadow-sm backdrop-blur-xl transition hover:bg-white/22"

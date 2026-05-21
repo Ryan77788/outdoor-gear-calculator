@@ -26,7 +26,9 @@ import {
   type Language,
 } from "@/lib/i18n";
 import { getActivityHeroImage } from "@/lib/activity-backgrounds";
+import { SiteFooter } from "@/app/site-footer";
 import { PlanOpenLogger } from "./PlanOpenLogger";
+import { PlanLanguageSync } from "./PlanLanguageSync";
 
 export const dynamic = "force-dynamic";
 const SAVED_PLANS_COLLECTION = "saved_plans";
@@ -92,7 +94,7 @@ function LanguageSwitch({ id, language }: { id: string; language: Language }) {
         className={`inline-flex rounded-full px-3 py-1.5 transition ${
           language === "en" ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
         }`}
-        href={`/plan/${id}`}
+        href={`/plan/${id}?lang=en`}
       >
         English
       </Link>
@@ -147,6 +149,7 @@ function EmptyState({ id, language }: { id: string; language: Language }) {
 
   return (
     <main className="min-h-screen bg-[#eef3ea] px-5 py-10 text-slate-900">
+      <PlanLanguageSync />
       <LanguageSwitch id={id} language={language} />
       <section className="mx-auto flex min-h-[70vh] max-w-3xl items-center">
         <div className="w-full rounded-2xl border border-white bg-white/92 p-7 text-center shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
@@ -155,6 +158,7 @@ function EmptyState({ id, language }: { id: string; language: Language }) {
           <p className="mt-3 text-sm leading-6 text-slate-500">{t.planNotFoundDescription}</p>
         </div>
       </section>
+      <SiteFooter language={language} />
     </main>
   );
 }
@@ -203,6 +207,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <PlanLanguageSync />
       <PlanOpenLogger
         activity={plan.activity}
         budget={plan.budget}
@@ -394,6 +399,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
           </div>
         </article>
       </section>
+      <SiteFooter language={language} />
     </main>
   );
 }

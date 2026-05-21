@@ -150,6 +150,10 @@ test("home page exposes site navigation and activity guide entries", () => {
   }
 
   assert.ok(source.includes('localStorage.setItem(LANGUAGE_STORAGE_KEY, language)'), "home language should persist to localStorage");
+  assert.ok(source.includes("localizedSectionHref"), "home section navigation should preserve the current language");
+  assert.ok(source.includes('`/?lang=${language}#${sectionId}`'), "home section anchors should keep lang before hash");
+  assert.ok(source.includes('`${window.location.origin}/plan/${planId}?lang=${language}`'), "copied saved-plan links should include current language");
+  assert.ok(source.includes('window.open(`/plan/${planId}?lang=${language}`'), "opened saved-plan links should include current language");
   assert.ok(source.includes('href={`${guide.href}?lang=${language}`}'), "activity guide links should carry the current language");
   assert.ok(guideClientSource.includes("new URLSearchParams(window.location.search).get(\"lang\")"), "guide pages should prefer URL lang");
   assert.ok(guideClientSource.includes("window.localStorage.getItem(LANGUAGE_STORAGE_KEY)"), "guide pages should read localStorage language");
@@ -261,6 +265,24 @@ test("legal placeholder pages exist with concise English content and footer", ()
     assert.ok(source.includes(heading), `${route} page should include heading`);
     assert.ok(source.includes("<LegalPageClient"), `${route} page should render localized legal content`);
   }
+});
+
+test("shared plan page synchronizes language and preserves language links", () => {
+  const planPageSource = fs.readFileSync(path.join(rootDir, "src/app/plan/[id]/page.tsx"), "utf8");
+  const planLanguageSyncSource = fs.existsSync(path.join(rootDir, "src/app/plan/[id]/PlanLanguageSync.tsx"))
+    ? fs.readFileSync(path.join(rootDir, "src/app/plan/[id]/PlanLanguageSync.tsx"), "utf8")
+    : "";
+
+  assert.ok(planPageSource.includes("PlanLanguageSync"), "shared plan page should include client language sync");
+  assert.ok(planPageSource.includes("<SiteFooter language={language} />"), "shared plan page should render localized footer");
+  assert.ok(planPageSource.includes('href={`/plan/${id}?lang=en`}'), "shared plan English switch should preserve explicit lang=en");
+  assert.ok(planPageSource.includes('href={`/plan/${id}?lang=zh`}'), "shared plan Chinese switch should preserve explicit lang=zh");
+  assert.ok(planPageSource.includes("<SiteFooter language={language} />"), "shared plan footer should follow current language");
+  assert.ok(planLanguageSyncSource.includes('"use client"'), "shared plan language fallback should run on the client");
+  assert.ok(planLanguageSyncSource.includes('new URLSearchParams(window.location.search).get("lang")'), "shared plan should prefer URL language");
+  assert.ok(planLanguageSyncSource.includes('window.localStorage.getItem("language")'), "shared plan should read stored language when URL language is absent");
+  assert.ok(planLanguageSyncSource.includes("window.location.replace"), "shared plan should redirect to stored language when URL language is absent");
+  assert.ok(planLanguageSyncSource.includes('window.localStorage.setItem("language", urlLanguage)'), "shared plan should persist URL language");
 });
 
 test("specialized activity background assets are not accidental duplicate placeholders", () => {
