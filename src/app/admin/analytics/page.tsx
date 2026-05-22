@@ -96,6 +96,12 @@ function displayValue(value: string | number | null | undefined) {
   return value;
 }
 
+function reportClientError(message: string, error: unknown) {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(message, error);
+  }
+}
+
 function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -322,7 +328,7 @@ export default function AnalyticsAdminPage() {
       setIsUnlocked(true);
       setUpdatedAt(new Date().toLocaleString("zh-CN", { dateStyle: "medium", timeStyle: "short" }));
     } catch (requestError) {
-      console.error("Failed to load analytics:", requestError);
+      reportClientError("Failed to load analytics:", requestError);
       setError("无法加载数据，请检查 MongoDB 连接后重试。");
     } finally {
       setIsLoading(false);

@@ -103,10 +103,10 @@ function resolveActivity(activity: Activity | string) {
 }
 
 const shareCardBackgrounds: Partial<Record<Activity, ActivityBackground>> = {
-  登山: { image: "/share-hiking.jpg", alt: "Premium mountain hiking landscape" },
-  徒步: { image: "/share-hiking.jpg", alt: "Premium hiking landscape" },
-  露营: { image: "/share-camping.jpg", alt: "Forest campsite outdoor photography" },
-  滑雪: { image: "/share-skiing.jpg", alt: "Snow mountain skiing photography" },
+  登山: { image: "/activity/hiking.jpg", alt: "Premium mountain hiking landscape" },
+  徒步: { image: "/activity/hiking.jpg", alt: "Premium hiking landscape" },
+  露营: { image: "/activity/camping.jpg", alt: "Forest campsite outdoor photography" },
+  滑雪: { image: "/activity/skiing.jpg", alt: "Snow mountain skiing photography" },
   钓鱼: { image: "/fishing-hero.jpg", alt: "Lake fishing outdoor photography" },
   自驾游: { image: "/activity/road-trip.jpg", alt: "Outdoor road trip landscape" },
   攀岩: { image: "/activity/climbing.jpg", alt: "Rock climbing wall photography" },

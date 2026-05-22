@@ -13,6 +13,12 @@ type PlanOpenLoggerProps = {
   budget: number;
 };
 
+function reportClientError(message: string, error: unknown) {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(message, error);
+  }
+}
+
 export function PlanOpenLogger({ planId, activity, weather, tripDays, peopleCount, budget }: PlanOpenLoggerProps) {
   useEffect(() => {
     async function logPlanOpen() {
@@ -35,7 +41,7 @@ export function PlanOpenLogger({ planId, activity, weather, tripDays, peopleCoun
           }),
         });
       } catch (error) {
-        console.error("Failed to log plan_open:", error);
+        reportClientError("Failed to log plan_open:", error);
       }
     }
 

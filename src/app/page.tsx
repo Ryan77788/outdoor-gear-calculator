@@ -38,7 +38,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getActivityBackground, getGuideImage, getShareCardBackground } from "@/lib/activity-backgrounds";
+import { getGuideImage, getShareCardBackground } from "@/lib/activity-backgrounds";
 import { SiteFooter } from "@/app/site-footer";
 
 type IconName = RiskIconName;
@@ -144,6 +144,12 @@ function SavedPlanCardSkeleton() {
       </div>
     </div>
   );
+}
+
+function reportClientError(message: string, error: unknown) {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(message, error);
+  }
 }
 
 const insightIconNames: Record<OutdoorInsightType, IconName> = {
@@ -882,7 +888,7 @@ export default function Home() {
       setEmail("");
       showToast("success", toastMessages.subscriptionSuccess);
     } catch (error) {
-      console.error("Failed to subscribe email:", error);
+      reportClientError("Failed to subscribe email:", error);
       setEmailStatus("error");
       showToast("error", toastMessages.subscriptionFailed);
     } finally {
@@ -904,7 +910,7 @@ export default function Home() {
       const result = (await response.json()) as PlansResponse;
       setSavedPlans(result.plans ?? []);
     } catch (error) {
-      console.error("Failed to load saved plans:", error);
+      reportClientError("Failed to load saved plans:", error);
       setSavedPlansLoadError(true);
     } finally {
       setIsSavedPlansLoading(false);
@@ -934,7 +940,7 @@ export default function Home() {
           return;
         }
 
-        console.error("Failed to load saved plans:", error);
+        reportClientError("Failed to load saved plans:", error);
         setSavedPlansLoadError(true);
       })
       .finally(() => {
@@ -979,10 +985,10 @@ export default function Home() {
           }),
         });
       } catch (error) {
-        console.error("Failed to log calculator usage:", error);
+        reportClientError("Failed to log calculator usage:", error);
       }
     } catch (error) {
-      console.error("Failed to generate gear list:", error);
+      reportClientError("Failed to generate gear list:", error);
       showToast("error", toastMessages.generateGearListFailed);
     } finally {
       setIsGeneratingGearList(false);
@@ -1025,7 +1031,7 @@ export default function Home() {
       await loadSavedPlans();
       showToast("success", toastMessages.savePlanSuccess);
     } catch (error) {
-      console.error("Failed to save plan:", error);
+      reportClientError("Failed to save plan:", error);
       setSavePlanStatus("idle");
       showToast("error", toastMessages.savePlanFailed);
     }
@@ -1041,7 +1047,7 @@ export default function Home() {
         body: JSON.stringify({ type, data }),
       });
     } catch (error) {
-      console.error(`Failed to log ${type}:`, error);
+      reportClientError(`Failed to log ${type}:`, error);
     }
   }
 
@@ -1079,7 +1085,7 @@ export default function Home() {
       setSavedPlans((current) => current.filter((plan) => plan._id !== planId));
       showToast("success", toastMessages.deletePlanSuccess);
     } catch (error) {
-      console.error("Failed to delete saved plan:", error);
+      reportClientError("Failed to delete saved plan:", error);
       showToast("error", toastMessages.deletePlanFailed);
     } finally {
       setDeletingPlanId(null);
@@ -1102,13 +1108,14 @@ export default function Home() {
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
       showToast("success", toastMessages.copyShareLinkSuccess);
     } catch (error) {
-      console.error("Failed to copy share link:", error);
+      reportClientError("Failed to copy share link:", error);
       showToast("error", toastMessages.copyShareLinkFailed);
     }
   }
 
   function handleViewSavedPlan(planId: string) {
-    window.open(`/plan/${planId}?lang=${language}`, "_blank");
+    const newWindow = window.open(`/plan/${planId}?lang=${language}`, "_blank", "noopener,noreferrer");
+    if (newWindow) newWindow.opener = null;
   }
 
   async function handleGenerateShareImage() {
@@ -1122,8 +1129,6 @@ export default function Home() {
     try {
       const exportElement = exportRef.current;
       const backgroundUrl = getShareCardBackground(form.activity).image;
-
-      console.log("share-card-background", form.activity, backgroundUrl);
 
       exportElement.style.display = "block";
       await preloadImage(backgroundUrl);
@@ -1152,7 +1157,7 @@ export default function Home() {
       });
       showToast("success", toastMessages.generateShareImageSuccess);
     } catch (error) {
-      console.error("Failed to generate share image:", error);
+      reportClientError("Failed to generate share image:", error);
       showToast("error", toastMessages.generateShareImageFailed);
     } finally {
       if (exportRef.current) {
@@ -1195,9 +1200,10 @@ export default function Home() {
         }),
       });
     } catch (error) {
-      console.error("Failed to log product click:", error);
+      reportClientError("Failed to log product click:", error);
     } finally {
-      window.open(clickedUrl, "_blank");
+      const newWindow = window.open(clickedUrl, "_blank", "noopener,noreferrer");
+      if (newWindow) newWindow.opener = null;
     }
   }
 
@@ -1225,17 +1231,19 @@ export default function Home() {
         </button>
       </div>
       <section className="relative isolate overflow-hidden">
-        <div
+        <Image
+          alt=""
           aria-hidden="true"
-          className="absolute inset-0 -z-20 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              'linear-gradient(to bottom, rgba(0, 0, 0, 0.26), rgba(22, 80, 45, 0.12), rgba(255, 255, 255, 0.28)), url("https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1800&q=85")',
-          }}
+          className="absolute inset-0 -z-20 object-cover"
+          fill
+          priority
+          quality={72}
+          sizes="100vw"
+          src="/home/home-hero.jpg"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.42),rgba(12,48,31,0.08)_50%,rgba(255,255,255,0.12)),linear-gradient(to_bottom,rgba(0,0,0,0.22),rgba(0,0,0,0.06)_45%,rgba(255,255,255,0.18))]"
+          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.42),rgba(12,48,31,0.08)_50%,rgba(255,255,255,0.12)),linear-gradient(to_bottom,rgba(0,0,0,0.48),rgba(0,0,0,0.18)_45%,rgba(255,255,255,0.18))]"
         />
 
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-6 pt-6 text-sm font-black text-white">
@@ -1493,10 +1501,15 @@ export default function Home() {
               href={`${guide.href}?lang=${language}`}
               key={guide.key}
             >
-              <div
+              <Image
+                alt=""
                 aria-hidden="true"
-                className="absolute inset-0 -z-20 bg-cover bg-center transition duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url("${getGuideImage(guide.href.replace("/", ""))}")` }}
+                className="absolute inset-0 -z-20 object-cover transition duration-500 group-hover:scale-105"
+                fill
+                loading="lazy"
+                quality={68}
+                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+                src={getGuideImage(guide.href.replace("/", ""))}
               />
               <div
                 aria-hidden="true"
@@ -1628,8 +1641,8 @@ export default function Home() {
                     <h3 className="font-black text-white">{item.title}</h3>
                   </div>
                   <ul className="space-y-2">
-                    {item.bullets.map((bullet) => (
-                      <li className="flex gap-2 text-sm leading-6 text-white/78" key={bullet}>
+                    {item.bullets.map((bullet, index) => (
+                      <li className="flex gap-2 text-sm leading-6 text-white/78" key={`${bullet}-${index}`}>
                         <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-200" />
                         <span>{bullet}</span>
                       </li>
@@ -1780,10 +1793,11 @@ export default function Home() {
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200">
                       <Image
                         alt={localizeProductName(product, language)}
-                        className="object-cover"
-                        fill
+                        className="h-full w-full object-cover"
                         loading="lazy"
                         sizes="80px"
+                        width={80}
+                        height={80}
                         src={product.image}
                       />
                       {product.imageStatus !== "matched" && (
@@ -2136,9 +2150,9 @@ export default function Home() {
                     {shareLabels.features}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                    {shareFeatureTags.map((tag) => (
+                    {shareFeatureTags.map((tag, index) => (
                       <span
-                        key={tag}
+                        key={`${tag}-${index}`}
                         style={{
                           background: "rgba(236, 253, 245, 0.92)",
                           borderRadius: "999px",

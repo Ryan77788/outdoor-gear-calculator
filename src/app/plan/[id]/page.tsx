@@ -218,13 +218,18 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
       />
       <LanguageSwitch id={id} language={language} />
       <section className="relative isolate overflow-hidden">
+        <Image
+          alt={localizeValue(plan.activity, language)}
+          className="absolute inset-0 -z-20 object-cover"
+          fill
+          priority
+          quality={72}
+          sizes="100vw"
+          src={heroImage}
+        />
         <div
-          aria-label={localizeValue(plan.activity, language)}
-          className="absolute inset-0 -z-20 bg-cover bg-center"
-          role="img"
-          style={{
-            backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(22, 80, 45, 0.12), rgba(238, 243, 234, 0.95)), url("${heroImage}")`,
-          }}
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.48),rgba(22,80,45,0.12),rgba(238,243,234,0.95))]"
         />
         <div className="mx-auto flex min-h-[300px] max-w-6xl flex-col justify-end px-5 pb-10 pt-16 sm:px-6">
           <p className="w-fit rounded-full border border-white/30 bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
@@ -329,10 +334,11 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
                     <div className="relative h-18 w-18 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200">
                       <Image
                         alt={localizeProductName(product, language)}
-                        className="object-cover"
-                        fill
+                        className="h-full w-full object-cover"
+                        height={72}
                         loading="lazy"
                         sizes="72px"
+                        width={72}
                         src={product.image}
                       />
                       {product.imageStatus !== "matched" && (

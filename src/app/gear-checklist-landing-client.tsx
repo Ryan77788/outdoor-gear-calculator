@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { SiteFooter } from "@/app/site-footer";
@@ -776,17 +777,18 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
       <section className="relative isolate overflow-hidden">
-        <div
-          aria-label={localizedPage.h1}
-          className="absolute inset-0 -z-20 bg-cover bg-center"
-          role="img"
-          style={{
-            backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.36), rgba(22, 80, 45, 0.18), rgba(238, 243, 234, 0.92)), url("${heroImage}")`,
-          }}
+        <Image
+          alt={localizedPage.h1}
+          className="absolute inset-0 -z-20 object-cover"
+          fill
+          priority
+          quality={72}
+          sizes="100vw"
+          src={heroImage}
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.5),rgba(12,48,31,0.12)_55%,rgba(238,243,234,0.18)),linear-gradient(to_bottom,rgba(0,0,0,0.16),rgba(0,0,0,0.04)_42%,rgba(238,243,234,0.96))]"
+          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.5),rgba(12,48,31,0.12)_55%,rgba(238,243,234,0.18)),linear-gradient(to_bottom,rgba(0,0,0,0.48),rgba(0,0,0,0.12)_42%,rgba(238,243,234,0.96))]"
         />
 
         <div className="mx-auto flex min-h-[390px] max-w-6xl flex-col justify-end px-6 pb-16 pt-20">
@@ -825,8 +827,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
           <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{labels.bestFor}</p>
           <h2 className="mt-3 text-2xl font-black text-slate-950">{labels.scenarios}</h2>
           <ul className="mt-5 space-y-3">
-            {localizedPage.scenarios.map((item) => (
-              <li key={item} className="flex gap-3 text-slate-700">
+            {localizedPage.scenarios.map((item, index) => (
+              <li key={`${item}-${index}`} className="flex gap-3 text-slate-700">
                 <span className="mt-2 h-2 w-2 rounded-full bg-emerald-700" />
                 <span>{item}</span>
               </li>
@@ -838,8 +840,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
           <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{labels.checklist}</p>
           <h2 className="mt-3 text-2xl font-black text-slate-950">{labels.coreGear}</h2>
           <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-            {localizedPage.gear.map((item) => (
-              <li key={item} className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm font-semibold text-slate-800">
+            {localizedPage.gear.map((item, index) => (
+              <li key={`${item}-${index}`} className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm font-semibold text-slate-800">
                 {item}
               </li>
             ))}
@@ -852,8 +854,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
           <p className="text-sm font-black uppercase tracking-[0.16em] text-amber-700">{labels.riskNotes}</p>
           <h2 className="mt-3 text-2xl font-black text-slate-950">{labels.riskTitle}</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {localizedPage.risks.map((risk) => (
-              <p key={risk} className="rounded-xl border border-amber-200 bg-white/75 p-4 text-sm leading-6 text-slate-700">
+            {localizedPage.risks.map((risk, index) => (
+              <p key={`${risk}-${index}`} className="rounded-xl border border-amber-200 bg-white/75 p-4 text-sm leading-6 text-slate-700">
                 {risk}
               </p>
             ))}
@@ -865,8 +867,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
         <article className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{labels.packingStrategy}</p>
           <ul className="mt-5 space-y-4">
-            {depthContent.packingStrategy.map((item) => (
-              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={item}>
+            {depthContent.packingStrategy.map((item, index) => (
+              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={`${item}-${index}`}>
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-700" />
                 <span>{item}</span>
               </li>
@@ -877,8 +879,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
         <article className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-rose-700">{labels.commonMistakes}</p>
           <ul className="mt-5 space-y-4">
-            {depthContent.commonMistakes.map((item) => (
-              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={item}>
+            {depthContent.commonMistakes.map((item, index) => (
+              <li className="flex gap-3 text-sm leading-6 text-slate-700" key={`${item}-${index}`}>
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-rose-600" />
                 <span>{item}</span>
               </li>
@@ -934,8 +936,8 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
                   <h3 className="font-black text-white">{item.title}</h3>
                 </div>
                 <ul className="space-y-2">
-                  {item.bullets.map((bullet) => (
-                    <li className="flex gap-2 text-sm leading-6 text-white/78" key={bullet}>
+                  {item.bullets.map((bullet, index) => (
+                    <li className="flex gap-2 text-sm leading-6 text-white/78" key={`${bullet}-${index}`}>
                       <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-200" />
                       <span>{bullet}</span>
                     </li>
@@ -969,10 +971,15 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
                 href={`/${guide.slug}?lang=${language}`}
                 key={guide.slug}
               >
-                <div
+                <Image
+                  alt=""
                   aria-hidden="true"
-                  className="absolute inset-0 -z-20 bg-cover bg-center transition duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url("${getGuideImage(guide.slug)}")` }}
+                  className="absolute inset-0 -z-20 object-cover transition duration-500 group-hover:scale-105"
+                  fill
+                  loading="lazy"
+                  quality={68}
+                  sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
+                  src={getGuideImage(guide.slug)}
                 />
                 <div
                   aria-hidden="true"
