@@ -644,6 +644,7 @@ export default function Home() {
   const siteNavLabels =
     language === "zh"
       ? {
+          brand: "Outdoor AI",
           planner: "装备规划",
           guides: "活动指南",
           saved: "已保存方案",
@@ -652,12 +653,26 @@ export default function Home() {
           viewGuide: "查看指南",
         }
       : {
+          brand: "Outdoor AI",
           planner: "Gear Planner",
           guides: "Activity Guides",
           saved: "Saved Plans",
           guidesTitle: "Activity Guides",
           guidesDescription: "Explore focused gear checklists by activity, then come back to build your own plan.",
           viewGuide: "View guide",
+        };
+  const heroCopy =
+    language === "zh"
+      ? {
+          badge: "AI 户外装备规划器",
+          title: "快速生成你的户外装备方案",
+          subtitle: "选择活动、天气、人数和预算，生成更贴近真实出行场景的装备清单、商品推荐和风险提示。",
+        }
+      : {
+          badge: "AI Outdoor Gear Planner",
+          title: "Plan the Right Outdoor Gear in Seconds",
+          subtitle:
+            "Choose your activity, weather, group size and budget. Get a practical gear checklist with product recommendations and risk notes.",
         };
   const localizedSectionHref = (sectionId: string) => `/?lang=${language}#${sectionId}`;
   const trustModule =
@@ -1168,7 +1183,7 @@ export default function Home() {
   }
 
   async function handleProductClick(product: Product) {
-    const clickedUrl = product.affiliateUrl || product.sourceUrl || product.buyUrl || product.productUrl || productUrl;
+    const clickedUrl = product.affiliateLink || product.searchLink || product.sourceUrl || product.buyUrl || product.productUrl || productUrl;
     const merchant = product.merchant || "Amazon";
 
     try {
@@ -1247,6 +1262,12 @@ export default function Home() {
         />
 
         <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-6 pt-6 text-sm font-black text-white">
+          <a
+            className="mr-1 rounded-full border border-white/30 bg-white/18 px-4 py-2 shadow-sm backdrop-blur-xl transition hover:bg-white/24"
+            href={localizedSectionHref("gear-planner")}
+          >
+            {siteNavLabels.brand}
+          </a>
           {[
             { href: localizedSectionHref("gear-planner"), label: siteNavLabels.planner },
             { href: localizedSectionHref("activity-guides"), label: siteNavLabels.guides },
@@ -1264,16 +1285,16 @@ export default function Home() {
 
         <div className="mx-auto flex min-h-[420px] max-w-6xl flex-col justify-center px-6 py-16">
           <p className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
-            Outdoor Gear Planner
+            {heroCopy.badge}
           </p>
           <h1 className="max-w-3xl text-5xl font-black leading-tight text-white drop-shadow-sm sm:text-6xl lg:text-7xl">
-            <span style={{ textShadow: "0 4px 22px rgba(0, 0, 0, 0.42)" }}>{t.heroTitle}</span>
+            <span style={{ textShadow: "0 4px 22px rgba(0, 0, 0, 0.42)" }}>{heroCopy.title}</span>
           </h1>
           <p
             className="mt-5 max-w-2xl text-lg leading-8 text-white/88 sm:text-xl"
             style={{ textShadow: "0 2px 14px rgba(0, 0, 0, 0.34)" }}
           >
-            {t.heroDescription}
+            {heroCopy.subtitle}
           </p>
         </div>
       </section>

@@ -83,9 +83,11 @@ export type ProductTemplate = {
   tags: string[];
   difficulty: ProductDifficulty;
   affiliate: boolean;
+  affiliateLink?: string;
   affiliateProvider: AffiliateProvider;
   affiliateUrl: string;
   merchant: string;
+  searchLink: string;
   sourceUrl: string;
   isAffiliateReady: boolean;
   description: string;
@@ -262,6 +264,7 @@ const categoryZhByGearCategory: Record<GearCategory, string> = {
 type ProductInput = Omit<
   ProductTemplate,
   | "affiliate"
+  | "searchLink"
   | "affiliateProvider"
   | "affiliateUrl"
   | "buyUrl"
@@ -279,6 +282,7 @@ type ProductInput = Omit<
   | "categoryEn"
 > & {
   affiliate?: boolean;
+  affiliateLink?: string;
   affiliateProvider?: AffiliateProvider;
   affiliateUrl?: string;
   category?: string;
@@ -493,6 +497,7 @@ function p(product: ProductInput): ProductTemplate {
     ...product,
     activity: expandActivities(product.activity),
     affiliate: product.affiliate ?? false,
+    affiliateLink: product.affiliateLink ?? "",
     affiliateProvider: product.affiliateProvider ?? getAffiliateProvider(platform),
     affiliateUrl: product.affiliateUrl ?? "",
     category: product.category ?? categoryZhByGearCategory[product.gearCategory],
@@ -505,6 +510,7 @@ function p(product: ProductInput): ProductTemplate {
     isAffiliateReady: product.isAffiliateReady ?? false,
     merchant: product.merchant ?? getMerchant(platform),
     rating: getProductRating(product),
+    searchLink: sourceUrl,
     sourceUrl,
     tags: getProductTags(product),
     buyUrl: sourceUrl,

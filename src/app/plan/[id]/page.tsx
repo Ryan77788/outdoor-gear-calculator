@@ -63,7 +63,7 @@ type DbPlan = Omit<SharedPlan, "_id" | "createdAt"> & {
 };
 
 const defaultMetadata: Metadata = {
-  title: "Gear Plan | Outdoor Gear Planner",
+  title: "Gear Plan | Outdoor AI",
   description: "View a shared outdoor gear plan.",
 };
 
@@ -153,7 +153,7 @@ function EmptyState({ id, language }: { id: string; language: Language }) {
       <LanguageSwitch id={id} language={language} />
       <section className="mx-auto flex min-h-[70vh] max-w-3xl items-center">
         <div className="w-full rounded-2xl border border-white bg-white/92 p-7 text-center shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-700">Outdoor Gear Planner</p>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-700">Outdoor AI</p>
           <h1 className="mt-4 text-2xl font-black text-slate-950 sm:text-3xl">{t.planNotFound}</h1>
           <p className="mt-3 text-sm leading-6 text-slate-500">{t.planNotFoundDescription}</p>
         </div>

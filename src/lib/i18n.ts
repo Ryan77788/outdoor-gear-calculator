@@ -7,9 +7,9 @@ export const translations = {
   en: {
     languageEnglish: "English",
     languageChinese: "中文",
-    heroTitle: "Outdoor Gear Planner",
+    heroTitle: "Plan the Right Outdoor Gear in Seconds",
     heroDescription:
-      "Generate practical gear lists and product combinations from your activity, weather, group size, and total budget.",
+      "Choose your activity, weather, group size and budget. Get a practical gear checklist with product recommendations and risk notes.",
     activityType: "Activity",
     tripDays: "Trip length",
     weather: "Weather",
