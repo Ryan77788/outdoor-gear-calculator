@@ -825,6 +825,46 @@ function applyBudgetUpgrades(
   return currentSelection;
 }
 
+function fillMinimumRecommendedProducts(
+  selected: Product[],
+  pool: ProductTemplate[],
+  budget: number,
+  people: number,
+  days: TripDays,
+  weather: Weather,
+  activity: Activity,
+  gearTier: GearTier,
+) {
+  if (selected.length >= 4) return selected;
+
+  const maxAllowed = Math.floor(Math.max(0, budget) * 1.1);
+  const selectedIds = new Set(selected.map((product) => product.id));
+  const selectedCategories = new Set(selected.map((product) => product.gearCategory));
+  const candidates = pool
+    .filter((product) => !selectedIds.has(product.id))
+    .filter((product) => isProductAllowedForDuration(product, days, weather))
+    .map((product) => buildCandidate(product, people, days, weather))
+    .sort((a, b) => {
+      const tierDiff = getProductTierAffinity(a.brand, a.level, gearTier) - getProductTierAffinity(b.brand, b.level, gearTier);
+      if (tierDiff !== 0) return tierDiff;
+
+      return productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days);
+    });
+
+  for (const product of candidates) {
+    if (selected.length >= 4) break;
+    if (selectedIds.has(product.id)) continue;
+    if (!canUseGearCategory(product.gearCategory, selectedCategories)) continue;
+    if (total(selected) + product.subtotal > maxAllowed) continue;
+
+    selected.push(product);
+    selectedIds.add(product.id);
+    selectedCategories.add(product.gearCategory);
+  }
+
+  return selected;
+}
+
 export function selectProductsByPriority(
   products: Product[],
   budget: number,
@@ -914,6 +954,8 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
   for (const product of optionalProducts) {
     tryAddProduct(selectedProducts, categoriesAfterUpgrade, product, maxAllowed);
   }
+
+  selectedProducts = fillMinimumRecommendedProducts(selectedProducts, pool, budget, peopleCount, days, weather, activity, gearTier);
 
   const totalPrice = total(selectedProducts);
 
