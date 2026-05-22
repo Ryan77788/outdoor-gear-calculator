@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 3px !important;
+}
+
+:where(button, a)[aria-disabled="true"],
+:where(button, a):disabled {
+  cursor: not-allowed;
+}

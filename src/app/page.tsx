@@ -97,7 +97,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismis
                 : "border-rose-200 bg-rose-50/95 text-rose-900 shadow-rose-950/10"
           }`}
           key={toast.id}
-          role="status"
+          role={toast.tone === "error" ? "alert" : "status"}
         >
           <span
             className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
@@ -1347,7 +1347,11 @@ export default function Home() {
                   updateField("peopleCount", Math.min(20, Number.isFinite(nextValue) ? nextValue : 1));
                 }}
               />
-              {formErrors.peopleCount && <p className="mt-2 text-xs font-bold text-rose-700">{formErrors.peopleCount}</p>}
+              {formErrors.peopleCount && (
+                <p className="mt-2 text-xs font-bold text-rose-700" role="alert">
+                  {formErrors.peopleCount}
+                </p>
+              )}
             </label>
 
             <label className="group block">
@@ -1371,7 +1375,11 @@ export default function Home() {
                   updateField("budget", Math.min(50000, Number.isFinite(nextValue) ? nextValue : 1000));
                 }}
               />
-              {formErrors.budget && <p className="mt-2 text-xs font-bold text-rose-700">{formErrors.budget}</p>}
+              {formErrors.budget && (
+                <p className="mt-2 text-xs font-bold text-rose-700" role="alert">
+                  {formErrors.budget}
+                </p>
+              )}
               <p className="mt-2 text-xs leading-5 text-slate-500">
                 {t.budgetHint}
               </p>
@@ -2214,7 +2222,7 @@ export default function Home() {
                 ))}
               </div>
             ) : savedPlansLoadError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-5 text-sm font-bold text-rose-800">
+              <div className="rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-5 text-sm font-bold text-rose-800" role="alert">
                 {stateMessages.loadSavedPlansFailed}
               </div>
             ) : savedPlans.length === 0 ? (
@@ -2310,7 +2318,9 @@ export default function Home() {
               </button>
               {emailStatus === "invalid" && (
                 <div className="sm:col-span-2">
-                  <p className="text-sm font-bold text-rose-700">{emailCapture.error}</p>
+                  <p className="text-sm font-bold text-rose-700" role="alert">
+                    {emailCapture.error}
+                  </p>
                 </div>
               )}
             </form>

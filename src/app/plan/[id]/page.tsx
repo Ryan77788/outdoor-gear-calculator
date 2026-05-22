@@ -219,8 +219,9 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
       <LanguageSwitch id={id} language={language} />
       <section className="relative isolate overflow-hidden">
         <div
-          aria-hidden="true"
+          aria-label={localizeValue(plan.activity, language)}
           className="absolute inset-0 -z-20 bg-cover bg-center"
+          role="img"
           style={{
             backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(22, 80, 45, 0.12), rgba(238, 243, 234, 0.95)), url("${heroImage}")`,
           }}

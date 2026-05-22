@@ -777,8 +777,9 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
       <section className="relative isolate overflow-hidden">
         <div
-          aria-hidden="true"
+          aria-label={localizedPage.h1}
           className="absolute inset-0 -z-20 bg-cover bg-center"
+          role="img"
           style={{
             backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.36), rgba(22, 80, 45, 0.18), rgba(238, 243, 234, 0.92)), url("${heroImage}")`,
           }}

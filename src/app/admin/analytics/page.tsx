@@ -391,7 +391,11 @@ export default function AnalyticsAdminPage() {
             type="password"
             value={password}
           />
-          {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
+          {error && (
+            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" role="alert">
+              {error}
+            </p>
+          )}
           <button
             className="mt-5 h-11 w-full rounded-lg bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             disabled={isLoading || !password}
@@ -460,7 +464,7 @@ export default function AnalyticsAdminPage() {
         </section>
 
         {analytics.error && (
-          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900" role="alert">
             {analytics.error}
           </div>
         )}
