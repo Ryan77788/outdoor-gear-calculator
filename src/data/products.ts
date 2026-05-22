@@ -22,6 +22,7 @@ export type GearType = "perPerson" | "shared" | "consumable";
 export type BudgetWeight = "high" | "medium" | "low";
 export type ImageStatus = "matched" | "placeholder" | "needsReview";
 export type ProductLinkType = "product" | "search";
+export type ProductReviewStatus = "search-only" | "reviewed" | "affiliate-ready";
 export type ActivitySlug = "hiking" | "desert-hiking" | "skiing" | "camping" | "fishing" | "kayaking";
 export type ProductActivity = Activity | ActivitySlug;
 export type Currency = "CNY";
@@ -89,6 +90,7 @@ export type ProductTemplate = {
   affiliateUrl: string;
   merchant: string;
   linkType: ProductLinkType;
+  reviewStatus: ProductReviewStatus;
   searchLink: string;
   sourceUrl: string;
   isAffiliateReady: boolean;
@@ -267,6 +269,7 @@ type ProductInput = Omit<
   ProductTemplate,
   | "affiliate"
   | "linkType"
+  | "reviewStatus"
   | "searchLink"
   | "affiliateProvider"
   | "affiliateUrl"
@@ -289,6 +292,7 @@ type ProductInput = Omit<
   affiliateProvider?: AffiliateProvider;
   affiliateUrl?: string;
   linkType?: ProductLinkType;
+  reviewStatus?: ProductReviewStatus;
   category?: string;
   categoryEn?: string;
   currency?: Currency;
@@ -496,6 +500,7 @@ function getProductDescription(product: ProductInput) {
 function p(product: ProductInput): ProductTemplate {
   const platform = getCommercePlatform(product);
   const sourceUrl = product.sourceUrl ?? searchUrl(platform, `${product.brand} ${product.nameEn ?? product.name}`);
+  const linkType = product.linkType ?? (product.affiliateLink ? "product" : "search");
 
   return {
     ...product,
@@ -512,9 +517,10 @@ function p(product: ProductInput): ProductTemplate {
     image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
     isAffiliateReady: product.isAffiliateReady ?? false,
-    linkType: product.linkType ?? (product.affiliateLink ? "product" : "search"),
+    linkType,
     merchant: product.merchant ?? getMerchant(platform),
     rating: getProductRating(product),
+    reviewStatus: product.reviewStatus ?? (product.affiliateLink ? "affiliate-ready" : linkType === "product" ? "reviewed" : "search-only"),
     searchLink: sourceUrl,
     sourceUrl,
     tags: getProductTags(product),

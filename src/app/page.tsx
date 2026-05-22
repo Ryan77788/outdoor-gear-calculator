@@ -82,6 +82,8 @@ type ToastMessage = {
   tone: ToastTone;
 };
 
+type ProductReviewFilter = "all" | Product["reviewStatus"];
+
 function ToastViewport({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
   if (toasts.length === 0) return null;
 
@@ -473,6 +475,7 @@ export default function Home() {
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [productReviewFilter, setProductReviewFilter] = useState<ProductReviewFilter>("all");
   const [isGeneratingGearList, setIsGeneratingGearList] = useState(false);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [email, setEmail] = useState("");
@@ -544,6 +547,13 @@ export default function Home() {
     () => getProductPlan(form.activity, form.budget, form.peopleCount, form.tripDays, form.weather),
     [form.activity, form.budget, form.peopleCount, form.tripDays, form.weather],
   );
+  const filteredRecommendedProducts = useMemo(
+    () =>
+      productReviewFilter === "all"
+        ? productPlan.selectedProducts
+        : productPlan.selectedProducts.filter((product) => product.reviewStatus === productReviewFilter),
+    [productPlan.selectedProducts, productReviewFilter],
+  );
   const gearTier = productPlan.gearTier ?? getGearTier(form.budget);
   const gearTierMeta = getGearTierMeta(gearTier, language);
   const gearTierStyle = getGearTierStyle(gearTier);
@@ -579,6 +589,21 @@ export default function Home() {
     [form.activity, form.weather, form.tripDays, form.peopleCount, language],
   );
   const t = translations[language];
+  const productReviewFilterLabels: Record<ProductReviewFilter, string> =
+    language === "zh"
+      ? {
+          all: "全部",
+          "search-only": "待人工确认",
+          reviewed: "已确认商品",
+          "affiliate-ready": "联盟商品",
+        }
+      : {
+          all: "All",
+          "search-only": "Needs review",
+          reviewed: "Verified",
+          "affiliate-ready": "Affiliate ready",
+        };
+  const productReviewFilters: ProductReviewFilter[] = ["all", "search-only", "reviewed", "affiliate-ready"];
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
   const displayValue = (value: string) => localizeValue(value, language);
   const shareRiskLevel = getShareRiskLevel(risks, form.weather, form.tripDays, language);
@@ -1734,7 +1759,25 @@ export default function Home() {
                 <Icon name="spark" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-950">{t.recommendedProducts}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-black text-slate-950">{t.recommendedProducts}</h2>
+                  <div className="flex flex-wrap gap-1.5" data-hide-in-share>
+                    {productReviewFilters.map((filter) => (
+                      <button
+                        className={`rounded-full border px-2.5 py-1 text-[11px] font-black transition ${
+                          productReviewFilter === filter
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                        }`}
+                        key={filter}
+                        onClick={() => setProductReviewFilter(filter)}
+                        type="button"
+                      >
+                        {productReviewFilterLabels[filter]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <p className="text-sm text-slate-500">{t.productPlan}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
                   {t.totalBudget}：{formatMoney(form.budget)} · {t.recommendedTotal}：
@@ -1805,7 +1848,7 @@ export default function Home() {
             </div>
 
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
-              {productPlan.selectedProducts.map((product, index) => (
+              {filteredRecommendedProducts.map((product, index) => (
                 <div
                   className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
                   key={`${product.name}-${product.quantity}-${index}`}
@@ -1879,6 +1922,18 @@ export default function Home() {
                       : language === "zh"
                         ? "搜索结果链接，商品需人工确认"
                         : "Search result link, product needs review"}
+                    {" · "}
+                    {product.reviewStatus === "affiliate-ready"
+                      ? language === "zh"
+                        ? "联盟商品"
+                        : "Affiliate ready"
+                      : product.reviewStatus === "reviewed"
+                        ? language === "zh"
+                          ? "已确认商品"
+                          : "Verified product"
+                        : language === "zh"
+                          ? "待人工确认"
+                          : "Needs review"}
                   </p>
 
                   <button
