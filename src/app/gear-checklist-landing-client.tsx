@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SiteFooter } from "@/app/site-footer";
 import type { GearChecklistPage } from "@/app/gear-checklist-pages";
 import type { Activity } from "@/data/products";
@@ -763,13 +763,13 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   }, []);
 
   const labels = guideLabels[language];
-  const localizedPage = getLocalizedPage(page, language);
-  const analysis = buildRecommendationAnalysis({ ...page.analysisContext, language });
+  const localizedPage = useMemo(() => getLocalizedPage(page, language), [page, language]);
+  const analysis = useMemo(() => buildRecommendationAnalysis({ ...page.analysisContext, language }), [page, language]);
   const tierMeta = getGearTierMeta(page.tier, language);
   const tierStyle = getGearTierStyle(page.tier);
   const heroImage = getGuideImage(page.slug);
-  const depthContent = getGuideDepthContent(page, language);
-  const relatedGuides = getRelatedGuides(page);
+  const depthContent = useMemo(() => getGuideDepthContent(page, language), [page, language]);
+  const relatedGuides = useMemo(() => getRelatedGuides(page), [page]);
   const activitySlug = activitySlugByActivity[page.analysisContext.activity] ?? page.slug;
   const plannerHref = `/?activity=${activitySlug}&lang=${language}`;
 

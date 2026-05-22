@@ -330,6 +330,7 @@ export default async function SharedPlanPage({ params, searchParams }: PageProps
                         alt={localizeProductName(product, language)}
                         className="object-cover"
                         fill
+                        loading="lazy"
                         sizes="72px"
                         src={product.image}
                       />
