@@ -21,6 +21,7 @@ export type ProductPriority = "core" | "important" | "optional";
 export type GearType = "perPerson" | "shared" | "consumable";
 export type BudgetWeight = "high" | "medium" | "low";
 export type ImageStatus = "matched" | "placeholder" | "needsReview";
+export type ProductLinkType = "product" | "search";
 export type ActivitySlug = "hiking" | "desert-hiking" | "skiing" | "camping" | "fishing" | "kayaking";
 export type ProductActivity = Activity | ActivitySlug;
 export type Currency = "CNY";
@@ -87,6 +88,7 @@ export type ProductTemplate = {
   affiliateProvider: AffiliateProvider;
   affiliateUrl: string;
   merchant: string;
+  linkType: ProductLinkType;
   searchLink: string;
   sourceUrl: string;
   isAffiliateReady: boolean;
@@ -264,6 +266,7 @@ const categoryZhByGearCategory: Record<GearCategory, string> = {
 type ProductInput = Omit<
   ProductTemplate,
   | "affiliate"
+  | "linkType"
   | "searchLink"
   | "affiliateProvider"
   | "affiliateUrl"
@@ -285,6 +288,7 @@ type ProductInput = Omit<
   affiliateLink?: string;
   affiliateProvider?: AffiliateProvider;
   affiliateUrl?: string;
+  linkType?: ProductLinkType;
   category?: string;
   categoryEn?: string;
   currency?: Currency;
@@ -508,6 +512,7 @@ function p(product: ProductInput): ProductTemplate {
     image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
     isAffiliateReady: product.isAffiliateReady ?? false,
+    linkType: product.linkType ?? (product.affiliateLink ? "product" : "search"),
     merchant: product.merchant ?? getMerchant(platform),
     rating: getProductRating(product),
     searchLink: sourceUrl,

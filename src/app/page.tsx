@@ -1872,7 +1872,13 @@ export default function Home() {
                       ? `来自 ${product.merchant || "Amazon"}`
                       : `Available on ${product.merchant || "Amazon"}`}
                     {" · "}
-                    {language === "zh" ? "当前为搜索链接，具体商品以后人工确认。" : "Search result link, exact product may vary."}
+                    {product.linkType === "product"
+                      ? language === "zh"
+                        ? "具体商品链接"
+                        : "Direct product link"
+                      : language === "zh"
+                        ? "搜索结果链接，商品需人工确认"
+                        : "Search result link, product needs review"}
                   </p>
 
                   <button
