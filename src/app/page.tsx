@@ -74,6 +74,14 @@ type SavePlanResponse = {
   plan?: SavedPlan;
 };
 
+function InlineNotice({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold leading-6 text-orange-900 shadow-sm">
+      {message}
+    </div>
+  );
+}
+
 const insightIconNames: Record<OutdoorInsightType, IconName> = {
   gear: "pack",
   weather: "weather",
@@ -467,10 +475,12 @@ export default function Home() {
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
+  const [savePlanError, setSavePlanError] = useState(false);
+  const [copyShareLinkError, setCopyShareLinkError] = useState(false);
   const [isGeneratingGearList, setIsGeneratingGearList] = useState(false);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [email, setEmail] = useState("");
-  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "invalid" | "error">("idle");
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [form, setForm] = useState<FormState>({
@@ -737,6 +747,7 @@ export default function Home() {
           button: "订阅",
           success: "订阅成功！",
           error: "请输入有效的邮箱地址。",
+          failed: "订阅失败，请稍后重试。",
         }
       : {
           title: "Get smarter outdoor packing tips",
@@ -745,6 +756,21 @@ export default function Home() {
           button: "Subscribe",
           success: "Thanks for subscribing!",
           error: "Enter a valid email address.",
+          failed: "Subscription failed. Please try again.",
+        };
+  const stateMessages =
+    language === "zh"
+      ? {
+          copyShareLinkFailed: "复制链接失败。",
+          emptyResults: "生成装备方案后查看你的清单。",
+          noSavedPlans: "暂无保存方案，生成并保存你的第一个方案。",
+          savePlanFailed: "保存失败，请稍后重试。",
+        }
+      : {
+          copyShareLinkFailed: "Failed to copy link.",
+          emptyResults: "Generate a gear plan to see your checklist.",
+          noSavedPlans: "No saved plans yet. Generate and save your first plan.",
+          savePlanFailed: "Failed to save plan. Please try again.",
         };
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
@@ -800,7 +826,7 @@ export default function Home() {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(normalizedEmail)) {
-      setEmailStatus("error");
+      setEmailStatus("invalid");
       return;
     }
 
@@ -914,6 +940,7 @@ export default function Home() {
   async function handleSavePlan() {
     setSavePlanStatus("saving");
     setLastSavedPlanId(null);
+    setSavePlanError(false);
 
     try {
       const response = await fetch("/api/plans", {
@@ -948,6 +975,7 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to save plan:", error);
       setSavePlanStatus("idle");
+      setSavePlanError(true);
     }
   }
 
@@ -1005,6 +1033,8 @@ export default function Home() {
   }
 
   async function handleCopyShareLink(planId: string) {
+    setCopyShareLinkError(false);
+
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}?lang=${language}`);
       await logUserBehavior("share_link_copy", {
@@ -1020,6 +1050,7 @@ export default function Home() {
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
     } catch (error) {
       console.error("Failed to copy share link:", error);
+      setCopyShareLinkError(true);
     }
   }
 
@@ -1421,6 +1452,14 @@ export default function Home() {
         </div>
       </section>
 
+      {!showResult && (
+        <section id="gear-results" ref={resultsRef} className="mx-auto max-w-6xl scroll-mt-24 px-6 pt-8">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/75 px-5 py-4 text-sm font-bold text-emerald-900 shadow-sm ring-1 ring-white/70">
+            {stateMessages.emptyResults}
+          </div>
+        </section>
+      )}
+
       {showResult && (
         <>
         <section id="gear-results" ref={resultsRef} className="mx-auto max-w-6xl px-6 pt-8">
@@ -1662,6 +1701,16 @@ export default function Home() {
                     {copiedPlanId === lastSavedPlanId ? t.copied : t.copyShareLink}
                   </button>
                 </>
+              )}
+              {savePlanError && (
+                <div className="sm:col-span-2">
+                  <InlineNotice message={stateMessages.savePlanFailed} />
+                </div>
+              )}
+              {copyShareLinkError && (
+                <div className="sm:col-span-2">
+                  <InlineNotice message={stateMessages.copyShareLinkFailed} />
+                </div>
               )}
             </div>
 
@@ -2094,6 +2143,8 @@ export default function Home() {
             </div>
           </div>
         </div>
+        </>
+      )}
 
         <section className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-10" id="saved-plans">
           <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur">
@@ -2107,9 +2158,15 @@ export default function Home() {
               </div>
             </div>
 
+            {copyShareLinkError && (
+              <div className="mb-4">
+                <InlineNotice message={stateMessages.copyShareLinkFailed} />
+              </div>
+            )}
+
             {savedPlans.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-500">
-                {t.noSavedPlans}
+                {stateMessages.noSavedPlans}
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -2166,8 +2223,6 @@ export default function Home() {
             )}
           </div>
         </section>
-        </>
-      )}
       <section className="mx-auto max-w-6xl px-6 pb-6 pt-2" aria-labelledby="email-capture">
         <div className="rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-emerald-950/10 backdrop-blur">
           <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
@@ -2201,9 +2256,15 @@ export default function Home() {
                 {emailCapture.button}
               </button>
               {emailStatus !== "idle" && (
-                <p className={`sm:col-span-2 text-sm font-bold ${emailStatus === "success" ? "text-emerald-700" : "text-rose-700"}`}>
-                  {emailStatus === "success" ? emailCapture.success : emailCapture.error}
-                </p>
+                <div className="sm:col-span-2">
+                  {emailStatus === "success" ? (
+                    <p className="text-sm font-bold text-emerald-700">{emailCapture.success}</p>
+                  ) : emailStatus === "invalid" ? (
+                    <p className="text-sm font-bold text-rose-700">{emailCapture.error}</p>
+                  ) : (
+                    <InlineNotice message={emailCapture.failed} />
+                  )}
+                </div>
               )}
             </form>
           </div>
