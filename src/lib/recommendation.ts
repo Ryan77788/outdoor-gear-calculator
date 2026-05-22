@@ -865,6 +865,81 @@ function fillMinimumRecommendedProducts(
   return selected;
 }
 
+function validateRecommendedProducts(
+  selected: Product[],
+  pool: ProductTemplate[],
+  budget: number,
+  people: number,
+  days: TripDays,
+  weather: Weather,
+  activity: Activity,
+  gearTier: GearTier,
+) {
+  const maxAllowed = Math.floor(Math.max(0, budget) * 1.2);
+  const reasonablePool = pool
+    .filter((product) => product.activity.includes(activity))
+    .filter((product) => isProductAllowedForDuration(product, days, weather));
+  let next = selected
+    .filter((product, index, products) => products.findIndex((item) => item.id === product.id) === index)
+    .filter((product) => product.activity.includes(activity))
+    .filter((product) => isProductAllowedForDuration(product, days, weather))
+    .sort((a, b) => productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days));
+
+  while (total(next) > maxAllowed && next.length > 4) {
+    next = next.slice(0, -1);
+  }
+
+  const selectedIds = new Set(next.map((product) => product.id));
+  const selectedCategories = new Set(next.map((product) => product.gearCategory));
+  const candidates = reasonablePool
+    .filter((product) => !selectedIds.has(product.id))
+    .map((product) => buildCandidate(product, people, days, weather))
+    .sort((a, b) => {
+      const tierDiff = getProductTierAffinity(a.brand, a.level, gearTier) - getProductTierAffinity(b.brand, b.level, gearTier);
+      if (tierDiff !== 0) return tierDiff;
+
+      return productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days);
+    });
+
+  for (const product of candidates) {
+    if (next.length >= 4) break;
+    if (!canUseGearCategory(product.gearCategory, selectedCategories)) continue;
+    if (total(next) + product.subtotal > maxAllowed) continue;
+
+    next.push(product);
+    selectedIds.add(product.id);
+    selectedCategories.add(product.gearCategory);
+  }
+
+  const lowPriceOnly = budget >= 5000 && next.length > 0 && next.every((product) => product.unitPrice < budget * 0.08);
+
+  if (lowPriceOnly) {
+    const upgrade = candidates.find(
+      (product) =>
+        !selectedIds.has(product.id) &&
+        highValueUpgradeCategories.has(product.gearCategory) &&
+        product.unitPrice >= budget * 0.08 &&
+        total(next) + product.subtotal <= maxAllowed,
+    );
+
+    if (upgrade) {
+      const replaceIndex = next.findIndex((product) => lowValueAccessoryCategories.has(product.gearCategory) || product.gearType === "consumable");
+
+      if (replaceIndex >= 0) {
+        next[replaceIndex] = upgrade;
+      } else {
+        next.push(upgrade);
+      }
+    }
+  }
+
+  while (total(next) > maxAllowed && next.length > 4) {
+    next = next.slice(0, -1);
+  }
+
+  return fillMinimumRecommendedProducts(next, reasonablePool, budget, people, days, weather, activity, gearTier);
+}
+
 export function selectProductsByPriority(
   products: Product[],
   budget: number,
@@ -955,7 +1030,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
     tryAddProduct(selectedProducts, categoriesAfterUpgrade, product, maxAllowed);
   }
 
-  selectedProducts = fillMinimumRecommendedProducts(selectedProducts, pool, budget, peopleCount, days, weather, activity, gearTier);
+  selectedProducts = validateRecommendedProducts(selectedProducts, pool, budget, peopleCount, days, weather, activity, gearTier);
 
   const totalPrice = total(selectedProducts);
 
