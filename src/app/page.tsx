@@ -74,10 +74,47 @@ type SavePlanResponse = {
   plan?: SavedPlan;
 };
 
-function InlineNotice({ message }: { message: string }) {
+type ToastTone = "success" | "error" | "warning";
+
+type ToastMessage = {
+  id: number;
+  message: string;
+  tone: ToastTone;
+};
+
+function ToastViewport({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
+  if (toasts.length === 0) return null;
+
   return (
-    <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold leading-6 text-orange-900 shadow-sm">
-      {message}
+    <div className="pointer-events-none fixed right-4 top-20 z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-3">
+      {toasts.map((toast) => (
+        <div
+          className={`pointer-events-auto flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-bold leading-6 shadow-lg backdrop-blur ${
+            toast.tone === "success"
+              ? "border-emerald-200 bg-emerald-50/95 text-emerald-900 shadow-emerald-950/10"
+              : toast.tone === "warning"
+                ? "border-orange-200 bg-orange-50/95 text-orange-900 shadow-orange-950/10"
+                : "border-rose-200 bg-rose-50/95 text-rose-900 shadow-rose-950/10"
+          }`}
+          key={toast.id}
+          role="status"
+        >
+          <span
+            className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+              toast.tone === "success" ? "bg-emerald-600" : toast.tone === "warning" ? "bg-orange-500" : "bg-rose-600"
+            }`}
+          />
+          <span className="min-w-0 flex-1">{toast.message}</span>
+          <button
+            aria-label="Dismiss notification"
+            className="rounded-full px-1.5 text-base leading-5 opacity-60 transition hover:bg-white/70 hover:opacity-100"
+            onClick={() => onDismiss(toast.id)}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -475,8 +512,7 @@ export default function Home() {
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
-  const [savePlanError, setSavePlanError] = useState(false);
-  const [copyShareLinkError, setCopyShareLinkError] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isGeneratingGearList, setIsGeneratingGearList] = useState(false);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [email, setEmail] = useState("");
@@ -761,17 +797,52 @@ export default function Home() {
   const stateMessages =
     language === "zh"
       ? {
-          copyShareLinkFailed: "复制链接失败。",
           emptyResults: "生成装备方案后查看你的清单。",
           noSavedPlans: "暂无保存方案，生成并保存你的第一个方案。",
+        }
+      : {
+          emptyResults: "Generate a gear plan to see your checklist.",
+          noSavedPlans: "No saved plans yet. Generate and save your first plan.",
+        };
+  const toastMessages =
+    language === "zh"
+      ? {
+          copyShareLinkFailed: "复制链接失败。",
+          copyShareLinkSuccess: "分享链接已复制。",
+          deletePlanFailed: "删除失败，请稍后重试。",
+          deletePlanSuccess: "方案已删除。",
+          generateGearListFailed: "生成装备清单失败，请稍后重试。",
+          generateShareImageFailed: "生成分享图失败，请稍后重试。",
+          generateShareImageSuccess: "分享图已生成。",
           savePlanFailed: "保存失败，请稍后重试。",
+          savePlanSuccess: "方案已保存。",
+          subscriptionFailed: "订阅失败，请稍后重试。",
+          subscriptionSuccess: "订阅成功！",
         }
       : {
           copyShareLinkFailed: "Failed to copy link.",
-          emptyResults: "Generate a gear plan to see your checklist.",
-          noSavedPlans: "No saved plans yet. Generate and save your first plan.",
+          copyShareLinkSuccess: "Share link copied.",
+          deletePlanFailed: "Failed to delete plan. Please try again.",
+          deletePlanSuccess: "Plan deleted.",
+          generateGearListFailed: "Failed to generate gear list. Please try again.",
+          generateShareImageFailed: "Failed to generate share image. Please try again.",
+          generateShareImageSuccess: "Share image generated.",
           savePlanFailed: "Failed to save plan. Please try again.",
+          savePlanSuccess: "Plan saved.",
+          subscriptionFailed: "Subscription failed. Please try again.",
+          subscriptionSuccess: "Thanks for subscribing!",
         };
+
+  function dismissToast(id: number) {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }
+
+  function showToast(tone: ToastTone, message: string) {
+    const id = Date.now() + Math.random();
+
+    setToasts((current) => [...current.slice(-2), { id, message, tone }]);
+    window.setTimeout(() => dismissToast(id), 3000);
+  }
 
   function updateField<K extends keyof FormState>(name: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -827,6 +898,7 @@ export default function Home() {
 
     if (!emailPattern.test(normalizedEmail)) {
       setEmailStatus("invalid");
+      showToast("warning", emailCapture.error);
       return;
     }
 
@@ -852,9 +924,11 @@ export default function Home() {
 
       setEmailStatus("success");
       setEmail("");
+      showToast("success", toastMessages.subscriptionSuccess);
     } catch (error) {
       console.error("Failed to subscribe email:", error);
       setEmailStatus("error");
+      showToast("error", toastMessages.subscriptionFailed);
     } finally {
       setIsSubscribing(false);
     }
@@ -910,28 +984,34 @@ export default function Home() {
     }
 
     setIsGeneratingGearList(true);
-    setShowResult(true);
-    setShouldScrollToResults(true);
 
     try {
-      await fetch("/api/log", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "calculator",
-          data: {
-            activity: form.activity,
-            days: form.tripDays,
-            weather: form.weather,
-            people: form.peopleCount,
-            budget: form.budget,
+      setShowResult(true);
+      setShouldScrollToResults(true);
+
+      try {
+        await fetch("/api/log", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            type: "calculator",
+            data: {
+              activity: form.activity,
+              days: form.tripDays,
+              weather: form.weather,
+              people: form.peopleCount,
+              budget: form.budget,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to log calculator usage:", error);
+      }
     } catch (error) {
-      console.error("Failed to log calculator usage:", error);
+      console.error("Failed to generate gear list:", error);
+      showToast("error", toastMessages.generateGearListFailed);
     } finally {
       setIsGeneratingGearList(false);
     }
@@ -940,7 +1020,6 @@ export default function Home() {
   async function handleSavePlan() {
     setSavePlanStatus("saving");
     setLastSavedPlanId(null);
-    setSavePlanError(false);
 
     try {
       const response = await fetch("/api/plans", {
@@ -972,10 +1051,11 @@ export default function Home() {
       setLastSavedPlanId(planId);
       setSavePlanStatus("saved");
       await loadSavedPlans();
+      showToast("success", toastMessages.savePlanSuccess);
     } catch (error) {
       console.error("Failed to save plan:", error);
       setSavePlanStatus("idle");
-      setSavePlanError(true);
+      showToast("error", toastMessages.savePlanFailed);
     }
   }
 
@@ -1025,16 +1105,16 @@ export default function Home() {
       }
 
       setSavedPlans((current) => current.filter((plan) => plan._id !== planId));
+      showToast("success", toastMessages.deletePlanSuccess);
     } catch (error) {
       console.error("Failed to delete saved plan:", error);
+      showToast("error", toastMessages.deletePlanFailed);
     } finally {
       setDeletingPlanId(null);
     }
   }
 
   async function handleCopyShareLink(planId: string) {
-    setCopyShareLinkError(false);
-
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/plan/${planId}?lang=${language}`);
       await logUserBehavior("share_link_copy", {
@@ -1048,9 +1128,10 @@ export default function Home() {
       });
       setCopiedPlanId(planId);
       window.setTimeout(() => setCopiedPlanId((current) => (current === planId ? null : current)), 1600);
+      showToast("success", toastMessages.copyShareLinkSuccess);
     } catch (error) {
       console.error("Failed to copy share link:", error);
-      setCopyShareLinkError(true);
+      showToast("error", toastMessages.copyShareLinkFailed);
     }
   }
 
@@ -1060,6 +1141,7 @@ export default function Home() {
 
   async function handleGenerateShareImage() {
     if (!exportRef.current) {
+      showToast("error", toastMessages.generateShareImageFailed);
       return;
     }
 
@@ -1095,8 +1177,10 @@ export default function Home() {
         totalPrice: productPlan.totalPrice,
         language,
       });
+      showToast("success", toastMessages.generateShareImageSuccess);
     } catch (error) {
       console.error("Failed to generate share image:", error);
+      showToast("error", toastMessages.generateShareImageFailed);
     } finally {
       if (exportRef.current) {
         exportRef.current.style.display = "none";
@@ -1146,6 +1230,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <ToastViewport onDismiss={dismissToast} toasts={toasts} />
       <div className="fixed right-4 top-4 z-50 rounded-full border border-white/70 bg-white/90 p-1 text-sm font-bold shadow-lg shadow-slate-900/10 backdrop-blur">
         <button
           className={`rounded-full px-3 py-1.5 transition ${
@@ -1702,16 +1787,6 @@ export default function Home() {
                   </button>
                 </>
               )}
-              {savePlanError && (
-                <div className="sm:col-span-2">
-                  <InlineNotice message={stateMessages.savePlanFailed} />
-                </div>
-              )}
-              {copyShareLinkError && (
-                <div className="sm:col-span-2">
-                  <InlineNotice message={stateMessages.copyShareLinkFailed} />
-                </div>
-              )}
             </div>
 
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
@@ -2158,12 +2233,6 @@ export default function Home() {
               </div>
             </div>
 
-            {copyShareLinkError && (
-              <div className="mb-4">
-                <InlineNotice message={stateMessages.copyShareLinkFailed} />
-              </div>
-            )}
-
             {savedPlans.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-500">
                 {stateMessages.noSavedPlans}
@@ -2255,15 +2324,9 @@ export default function Home() {
               >
                 {emailCapture.button}
               </button>
-              {emailStatus !== "idle" && (
+              {emailStatus === "invalid" && (
                 <div className="sm:col-span-2">
-                  {emailStatus === "success" ? (
-                    <p className="text-sm font-bold text-emerald-700">{emailCapture.success}</p>
-                  ) : emailStatus === "invalid" ? (
-                    <p className="text-sm font-bold text-rose-700">{emailCapture.error}</p>
-                  ) : (
-                    <InlineNotice message={emailCapture.failed} />
-                  )}
+                  <p className="text-sm font-bold text-rose-700">{emailCapture.error}</p>
                 </div>
               )}
             </form>
