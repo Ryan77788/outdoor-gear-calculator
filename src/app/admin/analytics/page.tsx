@@ -106,6 +106,67 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
   );
 }
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-slate-200/80 ${className}`} />;
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <SkeletonBlock className="h-4 w-24" />
+      <SkeletonBlock className="mt-4 h-9 w-28" />
+      <SkeletonBlock className="mt-4 h-4 w-full" />
+      <SkeletonBlock className="mt-2 h-4 w-2/3" />
+    </div>
+  );
+}
+
+function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-5 py-4">
+        <SkeletonBlock className="h-5 w-40" />
+      </div>
+      <div className="p-5">
+        <div className="grid grid-cols-[0.7fr_1.4fr_0.8fr] gap-4 border-b border-slate-100 pb-3">
+          <SkeletonBlock className="h-4" />
+          <SkeletonBlock className="h-4" />
+          <SkeletonBlock className="h-4" />
+        </div>
+        <div className="space-y-4 pt-4">
+          {Array.from({ length: rows }).map((_, index) => (
+            <div className="grid grid-cols-[0.7fr_1.4fr_0.8fr] gap-4" key={index}>
+              <SkeletonBlock className="h-4" />
+              <SkeletonBlock className="h-4" />
+              <SkeletonBlock className="h-4" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Loading analytics metrics">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <StatCardSkeleton key={index} />
+        ))}
+      </section>
+      <section className="mt-6 grid gap-4 lg:grid-cols-2" aria-label="Loading analytics tables">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <TableSkeleton key={index} rows={index === 4 ? 4 : 5} />
+        ))}
+      </section>
+      <section className="mt-6">
+        <TableSkeleton rows={6} />
+      </section>
+    </>
+  );
+}
+
 function RankingTable({
   title,
   nameHeader,
@@ -290,6 +351,28 @@ export default function AnalyticsAdminPage() {
     }
   }
 
+  if (isLoading && !analytics && password) {
+    return (
+      <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <header className="mb-5 flex flex-col gap-4 border-b border-slate-300 pb-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500">后台 / 数据分析</p>
+              <h1 className="mt-2 text-3xl font-black text-slate-950">数据分析后台</h1>
+              <p className="mt-3 text-sm text-slate-500">正在加载 MongoDB logs 数据...</p>
+            </div>
+          </header>
+          <section className="mb-5 flex flex-wrap gap-2">
+            {timeRangeOptions.map((option) => (
+              <SkeletonBlock className="h-10 w-24" key={option.value} />
+            ))}
+          </section>
+          <AnalyticsSkeleton />
+        </div>
+      </main>
+    );
+  }
+
   if (!isUnlocked || !analytics) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8 text-slate-950">
@@ -382,6 +465,10 @@ export default function AnalyticsAdminPage() {
           </div>
         )}
 
+        {isLoading ? (
+          <AnalyticsSkeleton />
+        ) : (
+          <>
         {!hasData && (
           <div className="mb-5 rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-600 shadow-sm">
             {EMPTY_STATE_TEXT}
@@ -412,6 +499,8 @@ export default function AnalyticsAdminPage() {
         <section className="mt-6">
           <RecentLogsTable logs={analytics.recentLogs} />
         </section>
+          </>
+        )}
       </div>
     </main>
   );

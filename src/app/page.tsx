@@ -119,6 +119,33 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismis
   );
 }
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-slate-200/80 ${className}`} />;
+}
+
+function SavedPlanCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <SkeletonBlock className="h-5 w-28" />
+          <SkeletonBlock className="mt-3 h-4 w-44" />
+        </div>
+        <SkeletonBlock className="h-7 w-20 rounded-full" />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <SkeletonBlock className="h-4" />
+        <SkeletonBlock className="h-4" />
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <SkeletonBlock className="h-9 rounded-xl" />
+        <SkeletonBlock className="h-9 rounded-xl" />
+        <SkeletonBlock className="col-span-2 h-9 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 const insightIconNames: Record<OutdoorInsightType, IconName> = {
   gear: "pack",
   weather: "weather",
@@ -509,6 +536,8 @@ export default function Home() {
   const [shouldScrollToResults, setShouldScrollToResults] = useState(false);
   const [savePlanStatus, setSavePlanStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
+  const [isSavedPlansLoading, setIsSavedPlansLoading] = useState(true);
+  const [savedPlansLoadError, setSavedPlansLoadError] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null);
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
@@ -798,10 +827,12 @@ export default function Home() {
     language === "zh"
       ? {
           emptyResults: "生成装备方案后查看你的清单。",
+          loadSavedPlansFailed: "保存方案加载失败，请稍后重试。",
           noSavedPlans: "暂无保存方案，生成并保存你的第一个方案。",
         }
       : {
           emptyResults: "Generate a gear plan to see your checklist.",
+          loadSavedPlansFailed: "Failed to load saved plans. Please try again.",
           noSavedPlans: "No saved plans yet. Generate and save your first plan.",
         };
   const toastMessages =
@@ -935,6 +966,9 @@ export default function Home() {
   }
 
   async function loadSavedPlans() {
+    setIsSavedPlansLoading(true);
+    setSavedPlansLoadError(false);
+
     try {
       const response = await fetch("/api/plans");
 
@@ -946,11 +980,17 @@ export default function Home() {
       setSavedPlans(result.plans ?? []);
     } catch (error) {
       console.error("Failed to load saved plans:", error);
+      setSavedPlansLoadError(true);
+    } finally {
+      setIsSavedPlansLoading(false);
     }
   }
 
   useEffect(() => {
     const controller = new AbortController();
+
+    setIsSavedPlansLoading(true);
+    setSavedPlansLoadError(false);
 
     fetch("/api/plans", { signal: controller.signal })
       .then((response) => {
@@ -962,6 +1002,7 @@ export default function Home() {
       })
       .then((result) => {
         setSavedPlans(result.plans ?? []);
+        setSavedPlansLoadError(false);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -969,6 +1010,12 @@ export default function Home() {
         }
 
         console.error("Failed to load saved plans:", error);
+        setSavedPlansLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsSavedPlansLoading(false);
+        }
       });
 
     return () => controller.abort();
@@ -2233,7 +2280,17 @@ export default function Home() {
               </div>
             </div>
 
-            {savedPlans.length === 0 ? (
+            {isSavedPlansLoading ? (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" aria-label="Loading saved plans">
+                {[0, 1, 2].map((item) => (
+                  <SavedPlanCardSkeleton key={item} />
+                ))}
+              </div>
+            ) : savedPlansLoadError ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-5 text-sm font-bold text-rose-800">
+                {stateMessages.loadSavedPlansFailed}
+              </div>
+            ) : savedPlans.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-500">
                 {stateMessages.noSavedPlans}
               </div>
