@@ -18,6 +18,7 @@ export type Activity =
 export type ProductWeather = "晴天" | "雨天" | "寒冷" | "炎热" | "通用";
 export type ProductLevel = "basic" | "standard" | "premium";
 export type ProductPriority = "core" | "important" | "optional";
+export type ProductDisplayPriority = "low" | "normal" | "high" | "featured";
 export type GearType = "perPerson" | "shared" | "consumable";
 export type BudgetWeight = "high" | "medium" | "low";
 export type ImageStatus = "matched" | "placeholder" | "needsReview";
@@ -97,6 +98,7 @@ export type ProductTemplate = {
   description: string;
   level: ProductLevel;
   priority: ProductPriority;
+  productPriority: ProductDisplayPriority;
   gearType: GearType;
   budgetWeight: BudgetWeight;
   price: number;
@@ -281,6 +283,7 @@ type ProductInput = Omit<
   | "imageStatus"
   | "isAffiliateReady"
   | "merchant"
+  | "productPriority"
   | "rating"
   | "sourceUrl"
   | "tags"
@@ -302,6 +305,7 @@ type ProductInput = Omit<
   imageStatus?: ImageStatus;
   isAffiliateReady?: boolean;
   merchant?: string;
+  productPriority?: ProductDisplayPriority;
   rating?: 4.2 | 4.5 | 4.8;
   sourceUrl?: string;
   tags?: string[];
@@ -462,6 +466,14 @@ function getProductDifficulty(product: ProductInput): ProductDifficulty {
   return "easy";
 }
 
+function getProductDisplayPriority(product: ProductInput): ProductDisplayPriority {
+  if (product.productPriority) return product.productPriority;
+  if (product.priority === "core" && product.level === "premium") return "featured";
+  if (product.priority === "core") return "high";
+  if (product.priority === "optional") return "low";
+  return "normal";
+}
+
 function getProductTags(product: ProductInput) {
   const tags = new Set<string>(product.tags ?? []);
 
@@ -519,6 +531,7 @@ function p(product: ProductInput): ProductTemplate {
     isAffiliateReady: product.isAffiliateReady ?? false,
     linkType,
     merchant: product.merchant ?? getMerchant(platform),
+    productPriority: getProductDisplayPriority(product),
     rating: getProductRating(product),
     reviewStatus: product.reviewStatus ?? (product.affiliateLink ? "affiliate-ready" : linkType === "product" ? "reviewed" : "search-only"),
     searchLink: sourceUrl,
@@ -558,6 +571,12 @@ export const productCatalog: Record<Activity, ProductTemplate[]> = {
     p({ id: "camping-jetboil-flash", name: "Jetboil Flash 高效炉具", nameEn: "Jetboil Flash cooking system", brand: "Jetboil", gearCategory: "stove", activity: ["露营"], weather: ["寒冷", "通用"], level: "premium", priority: "core", gearType: "shared", budgetWeight: "high", price: 999, unit: "套", reason: "烧水效率高，冷天和多人热饮场景更有价值。", reasonEn: "Fast boiling and efficient fuel use make it valuable in cold or group camp settings." }),
     p({ id: "camping-goal-zero-lighthouse", name: "Goal Zero Lighthouse 营地灯", nameEn: "Goal Zero Lighthouse camp lantern", brand: "Goal Zero", gearCategory: "lighting", activity: ["露营"], weather: ["通用"], level: "standard", priority: "core", gearType: "shared", budgetWeight: "medium", price: 499, unit: "个", reason: "稳定营地照明能让夜间取物、做饭和移动更安全。", reasonEn: "Stable camp lighting makes cooking, moving, and finding gear safer at night." }),
     p({ id: "camping-helinox-chair-one", name: "Helinox Chair One 露营椅", nameEn: "Helinox Chair One camping chair", brand: "Helinox", gearCategory: "chair", activity: ["露营"], weather: ["通用"], level: "standard", priority: "optional", gearType: "perPerson", budgetWeight: "low", price: 799, unit: "把", reason: "提升营地休息舒适度，但应排在帐篷、睡眠和炉具之后。", reasonEn: "Adds camp comfort, but should come after shelter, sleep, and cooking essentials." }),
+    p({ id: "camping-helinox-table-one", name: "Helinox Table One 折叠桌", nameEn: "Helinox Table One folding table", brand: "Helinox", gearCategory: "tableChair", activity: ["露营"], weather: ["通用"], level: "standard", priority: "important", gearType: "shared", budgetWeight: "medium", price: 899, unit: "套", reason: "日营做饭、摆放食材和整理小物会更稳定。", reasonEn: "A folding table keeps cooking, food prep, and small gear organized for day camping." }),
+    p({ id: "camping-yeti-roadie-cooler", name: "YETI Roadie 冷藏箱", nameEn: "YETI Roadie cooler", brand: "YETI", gearCategory: "cooler", activity: ["露营"], weather: ["炎热", "晴天", "通用"], level: "premium", priority: "important", gearType: "shared", budgetWeight: "medium", price: 2499, unit: "个", reason: "日营饮品、食材和易变质补给需要稳定冷藏。", reasonEn: "Keeps drinks, ingredients, and perishable food stable during a day camp." }),
+    p({ id: "camping-decathlon-picnic-mat", name: "Decathlon 野餐垫", nameEn: "Decathlon picnic mat", brand: "Decathlon", gearCategory: "beachMat", activity: ["露营"], weather: ["晴天", "通用"], level: "standard", priority: "important", gearType: "shared", budgetWeight: "low", price: 299, unit: "张", reason: "提供休息和用餐区域，适合不过夜的轻量营地。", reasonEn: "Creates a clean rest and meal area for day camping without overnight sleep gear." }),
+    p({ id: "camping-goal-zero-yeti-power", name: "Goal Zero Yeti 户外电源", nameEn: "Goal Zero Yeti portable power station", brand: "Goal Zero", gearCategory: "power", activity: ["露营"], weather: ["通用"], level: "premium", priority: "important", gearType: "shared", budgetWeight: "medium", price: 2999, unit: "个", reason: "为灯具、手机和小电器提供更稳定的日营供电。", reasonEn: "Powers lights, phones, and small devices during a higher-budget day camp." }),
+    p({ id: "camping-adventure-medical-kit", name: "Adventure Medical 急救包", nameEn: "Adventure Medical first aid kit", brand: "Adventure Medical", gearCategory: "firstAid", activity: ["露营"], weather: ["通用"], level: "standard", priority: "important", gearType: "shared", budgetWeight: "low", price: 299, unit: "个", reason: "处理割伤、烫伤、扭伤等营地常见小意外。", reasonEn: "Covers common camp incidents like cuts, burns, and minor sprains." }),
+    p({ id: "camping-columbia-bora-bora", name: "Columbia Bora Bora 遮阳帽", nameEn: "Columbia Bora Bora sun hat", brand: "Columbia", gearCategory: "sunHat", activity: ["露营"], weather: ["晴天", "炎热"], level: "standard", priority: "important", gearType: "perPerson", budgetWeight: "low", price: 249, unit: "顶", reason: "白天营地停留时间长，头面部防晒很重要。", reasonEn: "Sun protection matters when spending long daylight hours around camp." }),
   ],
   滑雪: [
     p({ id: "skiing-burton-process", name: "Burton Process 单板", nameEn: "Burton Process snowboard", brand: "Burton", gearCategory: "skiBoard", activity: ["滑雪"], weather: ["寒冷", "通用"], level: "standard", priority: "core", gearType: "perPerson", budgetWeight: "high", price: 3299, unit: "副", reason: "适合进阶练习，稳定性和容错性比较均衡。", reasonEn: "A balanced snowboard for progressing riders who need stability and forgiveness." }),

@@ -6,6 +6,7 @@ import {
   type GearCategory,
   type GearType,
   type Product,
+  type ProductDisplayPriority,
   type ProductLevel,
   type ProductPriority,
   type ProductTemplate,
@@ -88,6 +89,13 @@ const productPriorityRank: Record<ProductPriority, number> = {
   optional: 2,
 };
 
+const productDisplayPriorityRank: Record<ProductDisplayPriority, number> = {
+  featured: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
 const budgetWeightRank: Record<BudgetWeight, number> = {
   high: 0,
   medium: 1,
@@ -146,6 +154,38 @@ const lowValueAccessoryCategories = new Set<GearCategory>([
   "warmPatch",
   "electrolyte",
 ]);
+
+const overnightGearCategories = new Set<GearCategory>(["tent", "sleepingBag", "mat"]);
+const dayCampingCoreCategories: GearCategory[] = [
+  "chair",
+  "tableChair",
+  "lighting",
+  "cooler",
+  "beachMat",
+  "stove",
+  "firstAid",
+  "power",
+  "sunHat",
+  "sunscreen",
+];
+const dayTripPreferredCategories = new Set<GearCategory>([
+  "water",
+  "food",
+  "sunscreen",
+  "sunHat",
+  "sunglasses",
+  "firstAid",
+  "headlamp",
+  "lighting",
+  "raincoat",
+  "dryBag",
+  "baseLayer",
+]);
+
+function getCoreGearCategoriesForDuration(activity: Activity, tripDays: TripDays) {
+  if (activity === "露营" && tripDays === "1天") return dayCampingCoreCategories;
+  return activityCoreGearCategories[activity];
+}
 
 const weatherBoostCategories: Record<Weather, GearCategory[]> = {
   雨天: ["shellJacket", "raincoat", "shoes", "dryBag", "baseLayer", "skiSuit", "lighting"],
@@ -440,6 +480,14 @@ function mergeGear(items: GearTemplate[]) {
   return Array.from(map.values());
 }
 
+function isGearAllowedForDuration(item: GearTemplate, tripDays: TripDays) {
+  const gearCategory = gearQuantityRulesByName[item.name]?.gearCategory;
+
+  if (!gearCategory) return true;
+  if (tripDays === "1天") return !overnightGearCategories.has(gearCategory) && gearCategory !== "insulation";
+  return true;
+}
+
 const gearReasonEnByPriority: Record<GearPriority, string> = {
   safety: "Adds practical safety margin for navigation, delays, or small incidents.",
   weather: "Helps manage exposure when weather shifts during the trip.",
@@ -465,6 +513,7 @@ export function buildGearList(
   budget: number,
 ): GearItem[] {
   return mergeGear([...weatherGear[weather], ...activityGear[activity], ...durationGear[tripDays]])
+    .filter((item) => isGearAllowedForDuration(item, tripDays))
     .map((item) => ({
       ...item,
       ...getGearEnglish(item),
@@ -582,12 +631,28 @@ function productWeatherRank(product: ProductTemplate, weather: Weather) {
   return 3;
 }
 
-function productSortValue(product: ProductTemplate, activity: Activity, weather: Weather, gearTier: GearTier = "mid") {
-  const coreIndex = activityCoreGearCategories[activity].indexOf(product.gearCategory);
+function isProductAllowedForDuration(product: ProductTemplate, tripDays: TripDays, weather: Weather) {
+  if (tripDays !== "1天") return true;
+  if (overnightGearCategories.has(product.gearCategory)) return false;
+  if (product.gearCategory === "insulation") return weather === "寒冷" && product.level !== "premium";
+  return true;
+}
+
+function productDurationSortPenalty(product: ProductTemplate, tripDays: TripDays) {
+  if (tripDays !== "1天") return 0;
+  if (dayTripPreferredCategories.has(product.gearCategory)) return -250000;
+  if (product.gearType === "consumable") return -150000;
+  return 0;
+}
+
+function productSortValue(product: ProductTemplate, activity: Activity, weather: Weather, gearTier: GearTier = "mid", tripDays?: TripDays) {
+  const coreIndex = getCoreGearCategoriesForDuration(activity, tripDays ?? "2-3天").indexOf(product.gearCategory);
   const coreRank = coreIndex === -1 ? 50 : coreIndex;
   const tierAffinity = getProductTierAffinity(product.brand, product.level, gearTier);
 
   return (
+    productDurationSortPenalty(product, tripDays ?? "2-3天") +
+    productDisplayPriorityRank[product.productPriority] * 100000 +
     coreRank * 1000 +
     productWeatherRank(product, weather) * 100 +
     tierAffinity * 35 +
@@ -773,7 +838,9 @@ export function selectProductsByPriority(
 
   const gearTier = getGearTier(budget);
 
-  for (const product of [...products].sort((a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier))) {
+  for (const product of [...products]
+    .filter((product) => isProductAllowedForDuration(product, days, weather))
+    .sort((a, b) => productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days))) {
     tryAddProduct(selectedProducts, selectedGearCategories, product, maxAllowed);
   }
 
@@ -790,12 +857,14 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
   const budgetLevel = getBudgetLevel(budget, peopleCount);
   const gearTier = getGearTier(budget);
   const maxAllowed = Math.floor(Math.max(0, budget) * 1.1);
-  const pool = productCatalog[activity].filter((product) => product.activity.includes(activity));
+  const pool = productCatalog[activity]
+    .filter((product) => product.activity.includes(activity))
+    .filter((product) => isProductAllowedForDuration(product, days, weather));
   const grouped = groupByGearCategory(pool);
   const selected: Product[] = [];
   const selectedCategories = new Set<GearCategory>();
 
-  for (const gearCategory of activityCoreGearCategories[activity]) {
+  for (const gearCategory of getCoreGearCategoriesForDuration(activity, days)) {
     const variants = grouped.get(gearCategory);
 
     if (!variants) continue;
@@ -819,7 +888,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
     .filter((product) => product.weather.includes(weather) || weatherBoostCategories[weather].includes(product.gearCategory))
     .filter((product) => !weatherPenaltyCategories[weather].includes(product.gearCategory))
     .map((product) => buildCandidate(product, peopleCount, days, weather))
-    .sort((a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier));
+    .sort((a, b) => productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days));
 
   const currentCategories = new Set(selectedProducts.map((product) => product.gearCategory));
 
@@ -850,7 +919,7 @@ export function getProductPlan(activity: Activity, budget: number, peopleCount: 
 
   return {
     selectedProducts: selectedProducts.sort(
-      (a, b) => productSortValue(a, activity, weather, gearTier) - productSortValue(b, activity, weather, gearTier),
+      (a, b) => productSortValue(a, activity, weather, gearTier, days) - productSortValue(b, activity, weather, gearTier, days),
     ),
     totalPrice,
     remainingBudget: Math.max(-Math.floor(Math.max(0, budget) * 0.1), Math.max(0, budget) - totalPrice),

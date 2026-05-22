@@ -1876,9 +1876,21 @@ export default function Home() {
                           <p className="line-clamp-2 text-base font-black leading-6 text-slate-950 break-words">
                             {localizeProductName(product, language)}
                           </p>
-                          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {localizeProductCategory(product, language)}
-                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              {localizeProductCategory(product, language)}
+                            </p>
+                            {product.productPriority === "featured" && (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800 ring-1 ring-amber-100">
+                                精选推荐
+                              </span>
+                            )}
+                            {product.productPriority === "high" && (
+                              <span className="rounded-full bg-lime-50 px-2 py-0.5 text-[10px] font-black text-lime-800 ring-1 ring-lime-100">
+                                热门装备
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p className="shrink-0 whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
                           {formatMoney(product.subtotal)}
