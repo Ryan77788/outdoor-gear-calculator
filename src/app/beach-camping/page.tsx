@@ -2,7 +2,7 @@ import {
   createChecklistMetadata,
   GearChecklistLanding,
   gearChecklistPages,
-} from "@/app/gear-checklist-pages";
+} from "@/data/activities";
 
 const page = gearChecklistPages.beachCamping;
 

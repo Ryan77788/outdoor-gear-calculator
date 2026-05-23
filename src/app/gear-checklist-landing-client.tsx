@@ -748,6 +748,12 @@ function getGuideDepthContent(page: GearChecklistPage, language: Language): Guid
 }
 
 function getRelatedGuides(page: GearChecklistPage): RelatedGuide[] {
+  if (page.relatedSlugs?.length) {
+    const guidesBySlug = new Map(Object.values(relatedGuideCatalog).map((guide) => [guide.slug, guide]));
+
+    return page.relatedSlugs.map((slug) => guidesBySlug.get(slug)).filter((guide): guide is RelatedGuide => Boolean(guide));
+  }
+
   const keys = relatedGuideKeysBySlug[page.slug] ?? ["hiking", "camping", "roadTrip"];
 
   return keys.map((key) => relatedGuideCatalog[key]).filter((guide): guide is RelatedGuide => Boolean(guide));

@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
-import { gearChecklistPages } from "@/app/gear-checklist-pages";
+import { activities, seoLandingPages } from "@/data/activities";
 
 const siteUrl = "https://outdoor-gear-calculator.com";
 const staticRoutes = ["/privacy", "/terms", "/affiliate-disclosure"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const checklistRoutes = Object.values(gearChecklistPages).map((page) => ({
-    url: `${siteUrl}/${page.slug}`,
+  const checklistRoutes = Object.values(activities).map((activity) => ({
+    url: `${siteUrl}/${activity.slug}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.85,
@@ -17,6 +17,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "monthly" as const,
     priority: 0.45,
   }));
+  const dynamicGuideRoutes = seoLandingPages.map((page) => ({
+    url: `${siteUrl}/guides/${page.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.72,
+  }));
 
   return [
     {
@@ -26,6 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     ...checklistRoutes,
+    ...dynamicGuideRoutes,
     ...staticPages,
   ];
 }
