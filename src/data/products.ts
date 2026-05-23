@@ -327,6 +327,10 @@ function searchUrl(platform: CommercePlatform, query: string) {
   }
 }
 
+function productSearchQuery(product: ProductInput) {
+  return `${product.brand} ${product.nameEn ?? product.name}`;
+}
+
 function getCommercePlatform(product: ProductInput): CommercePlatform {
   const brand = product.brand.toLowerCase();
 
@@ -511,7 +515,10 @@ function getProductDescription(product: ProductInput) {
 
 function p(product: ProductInput): ProductTemplate {
   const platform = getCommercePlatform(product);
-  const sourceUrl = product.sourceUrl ?? searchUrl(platform, `${product.brand} ${product.nameEn ?? product.name}`);
+  const merchant = product.merchant ?? getMerchant(platform);
+  const fallbackPlatform = merchant === "REI" ? "amazon" : platform;
+  const fallbackSearchUrl = searchUrl(fallbackPlatform, productSearchQuery(product));
+  const sourceUrl = merchant === "REI" ? fallbackSearchUrl : product.sourceUrl ?? fallbackSearchUrl;
   const linkType = product.linkType ?? (product.affiliateLink ? "product" : "search");
 
   return {
@@ -530,7 +537,7 @@ function p(product: ProductInput): ProductTemplate {
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
     isAffiliateReady: product.isAffiliateReady ?? false,
     linkType,
-    merchant: product.merchant ?? getMerchant(platform),
+    merchant,
     productPriority: getProductDisplayPriority(product),
     rating: getProductRating(product),
     reviewStatus: product.reviewStatus ?? (product.affiliateLink ? "affiliate-ready" : linkType === "product" ? "reviewed" : "search-only"),

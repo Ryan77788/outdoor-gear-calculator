@@ -2060,7 +2060,7 @@ export default function Home() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-base font-black leading-6 text-slate-950 break-words">
+                          <p className="line-clamp-3 text-base font-black leading-6 text-slate-950 break-words [overflow-wrap:anywhere]">
                             {localizeProductName(product, language)}
                           </p>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">

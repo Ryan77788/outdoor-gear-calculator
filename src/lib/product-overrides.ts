@@ -28,12 +28,37 @@ export function sanitizeProductOverride(input: ProductOverrideInput): ProductOve
   };
 }
 
+function amazonSearchUrl(product: ProductTemplate | Product) {
+  return `https://www.amazon.com/s?k=${encodeURIComponent(`${product.brand} ${product.nameEn ?? product.name}`)}`;
+}
+
+function isReiUrl(value: string | undefined) {
+  return Boolean(value && /^https?:\/\/([^/]+\.)?rei\.com\//i.test(value));
+}
+
 export function applyProductOverride<T extends ProductTemplate | Product>(product: T, override?: ProductOverride): T {
-  if (!override) return product;
+  const fallbackBuyUrl = product.merchant === "REI" && isReiUrl(product.buyUrl) ? amazonSearchUrl(product) : product.buyUrl;
+  const fallbackSearchLink =
+    product.merchant === "REI" && isReiUrl(product.searchLink) ? amazonSearchUrl(product) : product.searchLink;
+  const fallbackSourceUrl =
+    product.merchant === "REI" && isReiUrl(product.sourceUrl) ? amazonSearchUrl(product) : product.sourceUrl;
+  const overrideBuyUrl =
+    product.merchant === "REI" && isReiUrl(override?.buyUrl) ? amazonSearchUrl(product) : override?.buyUrl;
+
+  if (!override) {
+    return {
+      ...product,
+      buyUrl: fallbackBuyUrl,
+      searchLink: fallbackSearchLink,
+      sourceUrl: fallbackSourceUrl,
+    };
+  }
 
   const next = {
     ...product,
-    ...(override.buyUrl !== undefined ? { buyUrl: override.buyUrl } : {}),
+    buyUrl: overrideBuyUrl ?? fallbackBuyUrl,
+    searchLink: fallbackSearchLink,
+    sourceUrl: fallbackSourceUrl,
     ...(override.affiliateLink !== undefined ? { affiliateLink: override.affiliateLink } : {}),
     ...(override.linkType !== undefined ? { linkType: override.linkType } : {}),
     ...(override.reviewStatus !== undefined ? { reviewStatus: override.reviewStatus } : {}),

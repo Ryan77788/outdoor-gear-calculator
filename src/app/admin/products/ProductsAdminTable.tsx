@@ -99,13 +99,14 @@ export function ProductsAdminTable({ products, overrides: initialOverrides }: Pr
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1250px] text-left text-sm">
+        <table className="w-full min-w-[1360px] text-left text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>
               <th className="px-4 py-3">商品名</th>
               <th className="px-4 py-3">品牌</th>
               <th className="px-4 py-3">活动</th>
               <th className="px-4 py-3">商家</th>
+              <th className="px-4 py-3">图片</th>
               <th className="px-4 py-3">linkType</th>
               <th className="px-4 py-3">reviewStatus</th>
               <th className="px-4 py-3 text-right">price</th>
@@ -129,6 +130,23 @@ export function ProductsAdminTable({ products, overrides: initialOverrides }: Pr
                     <td className="px-4 py-3 text-slate-700">{product.brand}</td>
                     <td className="px-4 py-3 text-slate-700">{product.activityLabel}</td>
                     <td className="px-4 py-3 text-slate-700">{product.merchant}</td>
+                    <td className="px-4 py-3">
+                      <div className="w-24">
+                        <div className="h-20 w-20 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200">
+                          <img
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            src={product.image}
+                          />
+                        </div>
+                        {product.imageStatus !== "matched" && (
+                          <span className="mt-2 inline-flex rounded-full bg-rose-50 px-2 py-1 text-[11px] font-black text-rose-700 ring-1 ring-rose-100">
+                            图片待确认
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">
                         {product.linkType}
@@ -164,13 +182,13 @@ export function ProductsAdminTable({ products, overrides: initialOverrides }: Pr
                         onClick={() => startEdit(product)}
                         type="button"
                       >
-                        {isEditing ? "Cancel" : "Edit"}
+                        {isEditing ? "取消" : "编辑"}
                       </button>
                     </td>
                   </tr>
                   {isEditing && (
                     <tr className="bg-emerald-50/40">
-                      <td className="px-4 py-4" colSpan={9}>
+                      <td className="px-4 py-4" colSpan={10}>
                         <div className="grid gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5">
                           <label className="text-xs font-bold text-slate-600">
                             buyUrl
