@@ -51,8 +51,8 @@ async function getProductOverrides(): Promise<ProductOverride[]> {
 }
 
 export const metadata = {
-  title: "商品审核后台 | Outdoor AI",
-  description: "查看和编辑 Outdoor AI 商品链接、图片与审核状态。",
+  title: "商品运营后台 | Outdoor AI",
+  description: "查看、搜索、排序、批量编辑 Outdoor AI 商品链接、图片与审核状态。",
 };
 
 export default async function ProductsAdminPage({ searchParams }: ProductsPageProps) {
@@ -66,10 +66,6 @@ export default async function ProductsAdminPage({ searchParams }: ProductsPagePr
     })),
   ) as AdminProduct[];
   const productsWithOverrides = applyProductOverrides(products, overrides);
-  const filteredProducts =
-    activeFilter === "all"
-      ? productsWithOverrides
-      : productsWithOverrides.filter((product) => product.reviewStatus === activeFilter);
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-950">
@@ -77,9 +73,9 @@ export default async function ProductsAdminPage({ searchParams }: ProductsPagePr
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Admin</p>
-            <h1 className="mt-2 text-3xl font-black">商品审核后台</h1>
+            <h1 className="mt-2 text-3xl font-black">商品运营后台</h1>
             <p className="mt-2 text-sm text-slate-600">
-              共 {products.length} 个商品，当前显示 {filteredProducts.length} 个。编辑内容会保存到 MongoDB product_overrides。
+              共 {products.length} 个商品，编辑和批量操作会保存到 MongoDB product_overrides。
             </p>
           </div>
           <nav className="flex flex-wrap gap-2" aria-label="商品审核状态筛选">
@@ -99,7 +95,7 @@ export default async function ProductsAdminPage({ searchParams }: ProductsPagePr
           </nav>
         </header>
 
-        <ProductsAdminTable products={filteredProducts} overrides={overrides} />
+        <ProductsAdminTable products={productsWithOverrides} overrides={overrides} initialStatusFilter={activeFilter} />
       </div>
     </main>
   );

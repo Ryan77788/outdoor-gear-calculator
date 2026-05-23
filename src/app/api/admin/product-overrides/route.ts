@@ -16,6 +16,10 @@ function isValidOverride(body: ProductOverrideInput) {
   );
 }
 
+type BulkProductOverridesInput = {
+  overrides?: ProductOverrideInput[];
+};
+
 export async function GET() {
   try {
     const client = await clientPromise;
@@ -43,34 +47,42 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ProductOverrideInput;
+    const body = (await request.json()) as ProductOverrideInput | BulkProductOverridesInput;
+    const inputOverrides = "overrides" in body && Array.isArray(body.overrides) ? body.overrides : [body as ProductOverrideInput];
 
-    if (!isValidOverride(body)) {
+    if (inputOverrides.length === 0 || inputOverrides.some((override) => !isValidOverride(override))) {
       return NextResponse.json({ success: false, error: "Invalid product override" }, { status: 400 });
     }
 
-    const override = sanitizeProductOverride(body);
+    const overrides = inputOverrides.map((override) => sanitizeProductOverride(override));
     const client = await clientPromise;
     const db = client.db("outdoor");
     const updatedAt = new Date();
 
-    await db.collection(PRODUCT_OVERRIDES_COLLECTION).updateOne(
-      { id: override.id },
-      {
-        $set: {
-          ...override,
-          updatedAt,
+    await db.collection(PRODUCT_OVERRIDES_COLLECTION).bulkWrite(
+      overrides.map((override) => ({
+        updateOne: {
+          filter: { id: override.id },
+          update: {
+            $set: {
+              ...override,
+              updatedAt,
+            },
+          },
+          upsert: true,
         },
-      },
-      { upsert: true },
+      })),
     );
+
+    const savedOverrides = overrides.map((override) => ({
+      ...override,
+      updatedAt: updatedAt.toISOString(),
+    }));
 
     return NextResponse.json({
       success: true,
-      override: {
-        ...override,
-        updatedAt: updatedAt.toISOString(),
-      },
+      override: savedOverrides[0],
+      overrides: savedOverrides,
     });
   } catch (error) {
     console.error("Failed to save product override:", error);
