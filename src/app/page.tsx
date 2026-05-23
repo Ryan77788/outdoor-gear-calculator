@@ -434,6 +434,25 @@ function getShareRecommendationReason(activity: Activity, tripDays: TripDays, pe
   return `A practical core gear setup for ${peopleCount} people and a ${tripDays} outdoor plan.`;
 }
 
+function getRecommendationInsight(activity: Activity, tripDays: TripDays, budget: number, language: Language) {
+  const isSingleDay = tripDays === tripDayOptions[0];
+  const isLongTrip = tripDays === tripDayOptions[2];
+
+  if (language === "zh") {
+    const tripFocus = isSingleDay ? "轻量日行装备" : isLongTrip ? "多日耐用装备" : "过夜与营地装备";
+    const budgetFocus = budget < 1500 ? "预算内核心装备" : budget >= 5000 ? "舒适性升级装备" : "均衡性价比装备";
+
+    return `已根据 ${localizeValue(tripDays, language)}${localizeValue(activity, language)}场景优化，优先推荐${tripFocus}与${budgetFocus}。`;
+  }
+
+  const activityLabel = localizeValue(activity, language).toLowerCase();
+  const tripLabel = isSingleDay ? "1-day" : isLongTrip ? "multi-day" : "2-3 day";
+  const tripFocus = isSingleDay ? "lightweight daytime gear" : isLongTrip ? "durable multi-day gear" : "overnight and camp-ready gear";
+  const budgetFocus = budget < 1500 ? "budget-conscious essentials" : budget >= 5000 ? "comfort-focused upgrades" : "balanced value picks";
+
+  return `Optimized for a ${tripLabel} ${activityLabel} trip with ${tripFocus} and ${budgetFocus}.`;
+}
+
 function getShareFeatureTags(products: Product[], weather: Weather, tripDays: TripDays, language: Language) {
   const tags = new Set<string>();
   const hasWaterproof = products.some((product) => product.tags.includes("waterproof") || product.weather.includes("雨天"));
@@ -557,6 +576,10 @@ export default function Home() {
   const gearTier = productPlan.gearTier ?? getGearTier(form.budget);
   const gearTierMeta = getGearTierMeta(gearTier, language);
   const gearTierStyle = getGearTierStyle(gearTier);
+  const recommendationInsight = useMemo(
+    () => getRecommendationInsight(form.activity, form.tripDays, form.budget, language),
+    [form.activity, form.tripDays, form.budget, language],
+  );
   const hasMoreGear = gearList.length > 6;
   const risks = useMemo(
     () => getRiskBlocks(form.activity, form.weather, form.tripDays),
@@ -1759,6 +1782,9 @@ export default function Home() {
                 <Icon name="spark" />
               </span>
               <div>
+                <p className="mb-1 max-w-xl text-sm font-semibold leading-6 text-emerald-700 line-clamp-2">
+                  {recommendationInsight}
+                </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-black text-slate-950">{t.recommendedProducts}</h2>
                   <div className="flex flex-wrap gap-1.5" data-hide-in-share>
