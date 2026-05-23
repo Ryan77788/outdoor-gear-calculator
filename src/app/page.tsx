@@ -20,6 +20,7 @@ import {
 } from "@/lib/recommendation";
 import { getGearTier, getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
+import { applyProductOverrides, type ProductOverride } from "@/lib/product-overrides";
 import {
   formatCurrency as formatLocalizedCurrency,
   formatQuantity,
@@ -74,6 +75,11 @@ type SavePlanResponse = {
   plan?: SavedPlan;
 };
 
+type ProductOverridesResponse = {
+  success: boolean;
+  overrides?: ProductOverride[];
+};
+
 type ToastTone = "success" | "error" | "warning";
 
 type ToastMessage = {
@@ -83,6 +89,7 @@ type ToastMessage = {
 };
 
 type ProductReviewFilter = "all" | Product["reviewStatus"];
+type BudgetFitScore = "excellent" | "good" | "under" | "slightlyOver" | "over";
 
 function ToastViewport({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
   if (toasts.length === 0) return null;
@@ -453,6 +460,101 @@ function getRecommendationInsight(activity: Activity, tripDays: TripDays, budget
   return `Optimized for a ${tripLabel} ${activityLabel} trip with ${tripFocus} and ${budgetFocus}.`;
 }
 
+function getBudgetFitScore(totalPrice: number, budget: number): BudgetFitScore {
+  if (budget <= 0) return "over";
+
+  const ratio = totalPrice / budget;
+
+  if (ratio > 1.1) return "over";
+  if (ratio > 1) return "slightlyOver";
+  if (ratio >= 0.8) return "excellent";
+  if (ratio >= 0.6) return "good";
+  return "under";
+}
+
+function getBudgetFitBadge(score: BudgetFitScore, language: Language) {
+  const labels: Record<Language, Record<BudgetFitScore, string>> = {
+    en: {
+      excellent: "Budget Fit: Excellent",
+      good: "Budget Fit: Good",
+      under: "Budget Fit: Under Budget",
+      slightlyOver: "Budget Fit: Slightly Over",
+      over: "Budget Fit: Over Budget",
+    },
+    zh: {
+      excellent: "预算匹配：优秀",
+      good: "预算匹配：良好",
+      under: "预算匹配：预算剩余较多",
+      slightlyOver: "预算匹配：小幅超出",
+      over: "预算匹配：超出预算",
+    },
+  };
+  const classNameByScore: Record<BudgetFitScore, string> = {
+    excellent: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    good: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    under: "border-sky-200 bg-sky-50 text-sky-800",
+    slightlyOver: "border-amber-200 bg-amber-50 text-amber-800",
+    over: "border-rose-200 bg-rose-50 text-rose-800",
+  };
+
+  return {
+    label: labels[language][score],
+    className: classNameByScore[score],
+  };
+}
+
+function getGearPrioritySummary(activity: Activity, weather: Weather, tripDays: TripDays, language: Language) {
+  if (language === "zh") {
+    const isDayTrip = tripDays === tripDayOptions[0];
+
+    if (activity === "露营" || activity === "海边露营" || activity === "冬季露营") {
+      return isDayTrip ? ["日间遮蔽", "座椅舒适", "饮食补给"] : ["睡眠系统", "营地烹饪", "夜间照明"];
+    }
+    if (activity === "滑雪" || activity === "单板滑雪") {
+      return weather === "寒冷" ? ["雪地安全", "保暖", "视野能见度"] : ["防护装备", "雪场保暖", "护目视野"];
+    }
+    if (activity === "钓鱼") {
+      return weather === "晴天" ? ["鱼竿组合", "防晒保护", "冷藏收纳"] : ["鱼竿组合", "防水收纳", "等待舒适"];
+    }
+    if (activity === "自驾游") return ["车载安全", "补给收纳", "途中舒适"];
+    if (activity === "皮划艇") return ["水上安全", "防水收纳", "防晒补水"];
+    if (activity === "沙漠徒步") return ["补水系统", "防晒遮蔽", "轻量行进"];
+    if (activity === "攀岩") return ["头部防护", "抓握装备", "路线安全"];
+    if (activity === "骑行") return ["头部防护", "维修工具", "补水照明"];
+
+    return weather === "雨天"
+      ? ["防雨外层", "稳定行走", "应急照明"]
+      : weather === "寒冷"
+        ? ["保暖层", "稳定行走", "安全冗余"]
+        : weather === "炎热"
+          ? ["补水降温", "防晒保护", "轻量背负"]
+          : ["稳定行走", "轻量背负", "饮食补给"];
+  }
+
+  const isDayTrip = tripDays === tripDayOptions[0];
+
+  if (activity === "露营" || activity === "海边露营" || activity === "冬季露营") {
+    return isDayTrip ? ["Day shelter", "Seating comfort", "Food & hydration"] : ["Sleep system", "Camp cooking", "Night lighting"];
+  }
+  if (activity === "滑雪" || activity === "单板滑雪") {
+    return weather === "寒冷" ? ["Snow safety", "Warmth", "Visibility"] : ["Protection", "Slope warmth", "Goggle visibility"];
+  }
+  if (activity === "钓鱼") {
+    return weather === "晴天" ? ["Rod setup", "Sun protection", "Cold storage"] : ["Rod setup", "Dry storage", "Waiting comfort"];
+  }
+  if (activity === "自驾游") return ["Vehicle safety", "Supply storage", "Road comfort"];
+  if (activity === "皮划艇") return ["Water safety", "Dry storage", "Sun & hydration"];
+  if (activity === "沙漠徒步") return ["Hydration system", "Sun coverage", "Light carry"];
+  if (activity === "攀岩") return ["Head protection", "Grip gear", "Route safety"];
+  if (activity === "骑行") return ["Head protection", "Repair tools", "Hydration & lights"];
+
+  if (weather === "雨天") return ["Rain protection", "Stable footing", "Emergency lighting"];
+  if (weather === "寒冷") return ["Warm layers", "Stable footing", "Safety margin"];
+  if (weather === "炎热") return ["Hydration", "Sun protection", "Light carry"];
+
+  return ["Stable footing", "Light carry", "Food & hydration"];
+}
+
 function getShareFeatureTags(products: Product[], weather: Weather, tripDays: TripDays, language: Language) {
   const tags = new Set<string>();
   const hasWaterproof = products.some((product) => product.tags.includes("waterproof") || product.weather.includes("雨天"));
@@ -495,6 +597,7 @@ export default function Home() {
   const [lastSavedPlanId, setLastSavedPlanId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [productReviewFilter, setProductReviewFilter] = useState<ProductReviewFilter>("all");
+  const [productOverrides, setProductOverrides] = useState<ProductOverride[]>([]);
   const [isGeneratingGearList, setIsGeneratingGearList] = useState(false);
   const [isGeneratingShareImage, setIsGeneratingShareImage] = useState(false);
   const [email, setEmail] = useState("");
@@ -534,6 +637,34 @@ export default function Home() {
   }, [language]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadProductOverrides() {
+      try {
+        const response = await fetch("/api/admin/product-overrides");
+
+        if (!response.ok) {
+          throw new Error(`Load product overrides failed with status ${response.status}`);
+        }
+
+        const result = (await response.json()) as ProductOverridesResponse;
+
+        if (isMounted && result.success) {
+          setProductOverrides(result.overrides ?? []);
+        }
+      } catch (error) {
+        reportClientError("Failed to load product overrides:", error);
+      }
+    }
+
+    void loadProductOverrides();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!shouldScrollToResults || !showResult) {
       return;
     }
@@ -566,12 +697,16 @@ export default function Home() {
     () => getProductPlan(form.activity, form.budget, form.peopleCount, form.tripDays, form.weather),
     [form.activity, form.budget, form.peopleCount, form.tripDays, form.weather],
   );
+  const recommendedProducts = useMemo(
+    () => applyProductOverrides(productPlan.selectedProducts, productOverrides),
+    [productPlan.selectedProducts, productOverrides],
+  );
   const filteredRecommendedProducts = useMemo(
     () =>
       productReviewFilter === "all"
-        ? productPlan.selectedProducts
-        : productPlan.selectedProducts.filter((product) => product.reviewStatus === productReviewFilter),
-    [productPlan.selectedProducts, productReviewFilter],
+        ? recommendedProducts
+        : recommendedProducts.filter((product) => product.reviewStatus === productReviewFilter),
+    [recommendedProducts, productReviewFilter],
   );
   const gearTier = productPlan.gearTier ?? getGearTier(form.budget);
   const gearTierMeta = getGearTierMeta(gearTier, language);
@@ -580,6 +715,11 @@ export default function Home() {
     () => getRecommendationInsight(form.activity, form.tripDays, form.budget, language),
     [form.activity, form.tripDays, form.budget, language],
   );
+  const gearPrioritySummary = useMemo(
+    () => getGearPrioritySummary(form.activity, form.weather, form.tripDays, language),
+    [form.activity, form.weather, form.tripDays, language],
+  );
+  const budgetFitBadge = getBudgetFitBadge(getBudgetFitScore(productPlan.totalPrice, form.budget), language);
   const hasMoreGear = gearList.length > 6;
   const risks = useMemo(
     () => getRiskBlocks(form.activity, form.weather, form.tripDays),
@@ -630,10 +770,10 @@ export default function Home() {
   const formatMoney = (value: number) => formatLocalizedCurrency(value, language);
   const displayValue = (value: string) => localizeValue(value, language);
   const shareRiskLevel = getShareRiskLevel(risks, form.weather, form.tripDays, language);
-  const shareGearHighlights = useMemo(() => getShareGearHighlights(productPlan.selectedProducts, form.activity), [productPlan.selectedProducts, form.activity]);
+  const shareGearHighlights = useMemo(() => getShareGearHighlights(recommendedProducts, form.activity), [recommendedProducts, form.activity]);
   const shareFeatureTags = useMemo(
-    () => getShareFeatureTags(productPlan.selectedProducts, form.weather, form.tripDays, language),
-    [productPlan.selectedProducts, form.weather, form.tripDays, language],
+    () => getShareFeatureTags(recommendedProducts, form.weather, form.tripDays, language),
+    [recommendedProducts, form.weather, form.tripDays, language],
   );
   const shareRecommendationReason = getShareRecommendationReason(form.activity, form.tripDays, form.peopleCount, language);
   const shareRemainingBudget = form.budget - productPlan.totalPrice;
@@ -1075,7 +1215,7 @@ export default function Home() {
           peopleCount: form.peopleCount,
           budget: form.budget,
           gearList,
-          recommendedProducts: productPlan.selectedProducts,
+          recommendedProducts,
           risks,
           totalPrice: productPlan.totalPrice,
           gearTier,
@@ -1231,7 +1371,7 @@ export default function Home() {
   }
 
   async function handleProductClick(product: Product) {
-    const clickedUrl = product.affiliateLink || product.searchLink || product.sourceUrl || product.buyUrl || product.productUrl || productUrl;
+    const clickedUrl = product.affiliateLink || product.buyUrl || product.searchLink || productUrl;
     const merchant = product.merchant || "Amazon";
 
     try {
@@ -1727,6 +1867,24 @@ export default function Home() {
           className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-3"
           data-share-capture="result"
         >
+          <div className="rounded-2xl border border-emerald-100 bg-white/88 px-4 py-3 shadow-sm ring-1 ring-white/70 backdrop-blur lg:col-span-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                {language === "zh" ? "本次装备重点" : "Top Priorities"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {gearPrioritySummary.map((priority) => (
+                  <span
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700"
+                    key={priority}
+                  >
+                    {priority}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <article
             className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
             data-share-card
@@ -1787,6 +1945,9 @@ export default function Home() {
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-black text-slate-950">{t.recommendedProducts}</h2>
+                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${budgetFitBadge.className}`}>
+                    {budgetFitBadge.label}
+                  </span>
                   <div className="flex flex-wrap gap-1.5" data-hide-in-share>
                     {productReviewFilters.map((filter) => (
                       <button

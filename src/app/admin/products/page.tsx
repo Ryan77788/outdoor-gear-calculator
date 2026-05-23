@@ -1,4 +1,7 @@
-import { productCatalog, type ProductReviewStatus } from "@/data/products";
+import { productCatalog, type ProductLinkType, type ProductReviewStatus } from "@/data/products";
+import clientPromise from "@/lib/mongodb";
+import { applyProductOverrides, type ProductOverride } from "@/lib/product-overrides";
+import { ProductsAdminTable, type AdminProduct } from "@/app/admin/products/ProductsAdminTable";
 
 type ProductFilter = "all" | ProductReviewStatus;
 
@@ -14,12 +17,8 @@ const filterOptions: Array<{ label: string; value: ProductFilter }> = [
   { label: "已确认商品", value: "reviewed" },
   { label: "联盟商品", value: "affiliate-ready" },
 ];
-
-const statusLabels: Record<ProductReviewStatus, string> = {
-  "search-only": "待人工确认",
-  reviewed: "已确认商品",
-  "affiliate-ready": "联盟商品",
-};
+const linkTypes: ProductLinkType[] = ["product", "search"];
+const reviewStatuses: ProductReviewStatus[] = ["search-only", "reviewed", "affiliate-ready"];
 
 function normalizeFilter(value: string | undefined): ProductFilter {
   if (value === "search-only" || value === "reviewed" || value === "affiliate-ready") {
@@ -29,26 +28,48 @@ function normalizeFilter(value: string | undefined): ProductFilter {
   return "all";
 }
 
-function formatPrice(value: number) {
-  return `¥${Math.round(value).toLocaleString("zh-CN")}`;
+async function getProductOverrides(): Promise<ProductOverride[]> {
+  try {
+    const client = await clientPromise;
+    const db = client.db("outdoor");
+    const overrides = await db.collection("product_overrides").find({}).toArray();
+
+    return overrides.map((override) => ({
+      id: override.id,
+      ...(typeof override.buyUrl === "string" ? { buyUrl: override.buyUrl } : {}),
+      ...(typeof override.affiliateLink === "string" ? { affiliateLink: override.affiliateLink } : {}),
+      ...(linkTypes.includes(override.linkType) ? { linkType: override.linkType } : {}),
+      ...(reviewStatuses.includes(override.reviewStatus) ? { reviewStatus: override.reviewStatus } : {}),
+      ...(typeof override.image === "string" ? { image: override.image } : {}),
+      updatedAt: override.updatedAt?.toISOString?.() ?? override.updatedAt,
+    }));
+  } catch (error) {
+    console.error("Failed to load product overrides:", error);
+
+    return [];
+  }
 }
 
 export const metadata = {
   title: "商品审核后台 | Outdoor AI",
-  description: "查看 Outdoor AI 商品数据的链接类型与审核状态。",
+  description: "查看和编辑 Outdoor AI 商品链接、图片与审核状态。",
 };
 
 export default async function ProductsAdminPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams;
   const activeFilter = normalizeFilter(params.status);
+  const overrides = await getProductOverrides();
   const products = Object.entries(productCatalog).flatMap(([activity, items]) =>
     items.map((product) => ({
       ...product,
       activityLabel: activity,
     })),
-  );
+  ) as AdminProduct[];
+  const productsWithOverrides = applyProductOverrides(products, overrides);
   const filteredProducts =
-    activeFilter === "all" ? products : products.filter((product) => product.reviewStatus === activeFilter);
+    activeFilter === "all"
+      ? productsWithOverrides
+      : productsWithOverrides.filter((product) => product.reviewStatus === activeFilter);
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-950">
@@ -58,7 +79,7 @@ export default async function ProductsAdminPage({ searchParams }: ProductsPagePr
             <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Admin</p>
             <h1 className="mt-2 text-3xl font-black">商品审核后台</h1>
             <p className="mt-2 text-sm text-slate-600">
-              共 {products.length} 个商品，当前显示 {filteredProducts.length} 个。
+              共 {products.length} 个商品，当前显示 {filteredProducts.length} 个。编辑内容会保存到 MongoDB product_overrides。
             </p>
           </div>
           <nav className="flex flex-wrap gap-2" aria-label="商品审核状态筛选">
@@ -78,66 +99,7 @@ export default async function ProductsAdminPage({ searchParams }: ProductsPagePr
           </nav>
         </header>
 
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">商品名</th>
-                  <th className="px-4 py-3">品牌</th>
-                  <th className="px-4 py-3">活动</th>
-                  <th className="px-4 py-3">商家</th>
-                  <th className="px-4 py-3">linkType</th>
-                  <th className="px-4 py-3">reviewStatus</th>
-                  <th className="px-4 py-3 text-right">price</th>
-                  <th className="px-4 py-3">buyUrl</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredProducts.map((product) => (
-                  <tr className="align-top hover:bg-slate-50/70" key={`${product.activityLabel}-${product.id}`}>
-                    <td className="max-w-72 px-4 py-3 font-semibold text-slate-950">
-                      <p>{product.name}</p>
-                      {product.nameEn && <p className="mt-1 text-xs font-medium text-slate-500">{product.nameEn}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{product.brand}</td>
-                    <td className="px-4 py-3 text-slate-700">{product.activityLabel}</td>
-                    <td className="px-4 py-3 text-slate-700">{product.merchant}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">
-                        {product.linkType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                          product.reviewStatus === "affiliate-ready"
-                            ? "bg-emerald-50 text-emerald-800"
-                            : product.reviewStatus === "reviewed"
-                              ? "bg-lime-50 text-lime-800"
-                              : "bg-amber-50 text-amber-800"
-                        }`}
-                      >
-                        {statusLabels[product.reviewStatus]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-black text-slate-950">{formatPrice(product.price)}</td>
-                    <td className="max-w-80 px-4 py-3">
-                      <a
-                        className="break-all text-xs font-semibold text-emerald-700 hover:text-emerald-900"
-                        href={product.buyUrl}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        {product.buyUrl}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <ProductsAdminTable products={filteredProducts} overrides={overrides} />
       </div>
     </main>
   );
