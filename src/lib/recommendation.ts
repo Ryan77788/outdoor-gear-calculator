@@ -595,6 +595,27 @@ function createProduct(item: ProductTemplate, quantity: number): Product {
   };
 }
 
+function getProductDebugReasons(product: ProductTemplate, activity: Activity, gearTier: GearTier, days: TripDays) {
+  const reasons: string[] = [];
+
+  if (product.activity.includes(activity)) reasons.push("matched activity");
+  if (getProductTierAffinity(product.brand, product.level, gearTier) <= 1) reasons.push("matched tier");
+  if (product.productPriority === "featured" || product.productPriority === "high") reasons.push("high priority");
+  if (days === "1天") reasons.push("removed overnight gear for 1 day");
+
+  return reasons;
+}
+
+function withDebugReason<T extends Product>(product: T, reasons: string[]) {
+  const productWithDebug = product as T & { debugReason?: string[] };
+  const currentReasons = Array.isArray(productWithDebug.debugReason) ? productWithDebug.debugReason : [];
+
+  return {
+    ...product,
+    debugReason: Array.from(new Set([...currentReasons, ...reasons])),
+  };
+}
+
 function getBudgetLevel(budget: number, peopleCount: number): BudgetLevel {
   const perPersonBudget = Math.max(0, budget) / Math.max(1, peopleCount);
 
@@ -857,7 +878,7 @@ function fillMinimumRecommendedProducts(
     if (!canUseGearCategory(product.gearCategory, selectedCategories)) continue;
     if (total(selected) + product.subtotal > maxAllowed) continue;
 
-    selected.push(product);
+    selected.push(withDebugReason(product, ["filled by minimum rule"]));
     selectedIds.add(product.id);
     selectedCategories.add(product.gearCategory);
   }
@@ -926,9 +947,9 @@ function validateRecommendedProducts(
       const replaceIndex = next.findIndex((product) => lowValueAccessoryCategories.has(product.gearCategory) || product.gearType === "consumable");
 
       if (replaceIndex >= 0) {
-        next[replaceIndex] = upgrade;
+        next[replaceIndex] = withDebugReason(upgrade, ["filled by minimum rule"]);
       } else {
-        next.push(upgrade);
+        next.push(withDebugReason(upgrade, ["filled by minimum rule"]));
       }
     }
   }
@@ -937,7 +958,9 @@ function validateRecommendedProducts(
     next = next.slice(0, -1);
   }
 
-  return fillMinimumRecommendedProducts(next, reasonablePool, budget, people, days, weather, activity, gearTier);
+  return fillMinimumRecommendedProducts(next, reasonablePool, budget, people, days, weather, activity, gearTier).map((product) =>
+    withDebugReason(product, getProductDebugReasons(product, activity, gearTier, days)),
+  );
 }
 
 export function selectProductsByPriority(
