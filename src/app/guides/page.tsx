@@ -53,18 +53,28 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const query = await searchParams;
   const language = getLanguageFromValue(query?.lang);
   const pageCopy = copy[language];
+  const url = "https://outdoor-gear-calculator.com/guides";
+  const imageUrl = "https://outdoor-gear-calculator.com/og-image.jpg";
 
   return {
     title: pageCopy.title,
     description: pageCopy.description,
     alternates: {
-      canonical: "https://outdoor-gear-calculator.com/guides",
+      canonical: url,
     },
     openGraph: {
       title: pageCopy.title,
       description: pageCopy.description,
       type: "website",
-      url: "https://outdoor-gear-calculator.com/guides",
+      url,
+      siteName: "Outdoor AI",
+      images: [{ url: imageUrl }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: pageCopy.title,
+      description: pageCopy.description,
+      images: [imageUrl],
     },
   };
 }

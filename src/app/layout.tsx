@@ -2,6 +2,29 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const siteUrl = "https://outdoor-gear-calculator.com";
+const defaultOgImage = `${siteUrl}/og-image.jpg`;
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Outdoor AI",
+  url: siteUrl,
+  logo: `${siteUrl}/logo.png`,
+  sameAs: [],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Outdoor AI",
+  alternateName: "Outdoor Gear Calculator",
+  url: siteUrl,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/guides?search={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -19,6 +42,8 @@ export const metadata: Metadata = {
     description: "Plan outdoor gear by activity, weather, people and budget.",
     type: "website",
     url: siteUrl,
+    siteName: "Outdoor AI",
+    images: [{ url: defaultOgImage }],
   },
   alternates: {
     canonical: siteUrl,
@@ -27,6 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Outdoor AI | Outdoor Gear Calculator",
     description: "Plan outdoor gear by activity, weather, people and budget.",
+    images: [defaultOgImage],
   },
 };
 
@@ -37,7 +63,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c") }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c") }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

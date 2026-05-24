@@ -106,6 +106,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
   const copy = localized(page, language);
   const url = `https://outdoor-gear-calculator.com/guides/${page.slug}`;
+  const imageUrl = new URL(page.activity.heroImage, url).toString();
 
   return {
     title: copy.title,
@@ -116,13 +117,14 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       description: copy.description,
       type: "website",
       url,
-      images: [{ url: new URL(page.activity.heroImage, url).toString() }],
+      siteName: "Outdoor AI",
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: "summary_large_image",
       title: copy.title,
       description: copy.description,
-      images: [new URL(page.activity.heroImage, url).toString()],
+      images: [imageUrl],
     },
   };
 }

@@ -425,9 +425,10 @@ export const gearChecklistPages = {
 } satisfies Record<string, GearChecklistPage>;
 
 export function createChecklistMetadata(page: GearChecklistPage): Metadata {
-  const url = `https://outdoor-gear-calculator.com/${page.slug}`;
+  const siteUrl = "https://outdoor-gear-calculator.com";
+  const url = `${siteUrl}/${page.slug}`;
   const image = getGuideImage(page.slug);
-  const imageUrl = new URL(image, "https://outdoor-gear-calculator.com").toString();
+  const imageUrl = new URL(image, siteUrl).toString();
 
   return {
     title: page.title,
@@ -441,6 +442,7 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
       description: page.description,
       type: "website",
       url,
+      siteName: "Outdoor AI",
       images: [{ url: imageUrl }],
     },
     twitter: {
