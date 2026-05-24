@@ -5,7 +5,7 @@ import type { GearTier } from "@/lib/gear-tier";
 
 import { getGuideImage } from "@/lib/activity-backgrounds";
 import { GearChecklistLandingClient } from "@/app/gear-checklist-landing-client";
-import { getLanguageFromValue, type Language } from "@/lib/i18n";
+import { getLanguageFromValue, localizeValue, type Language } from "@/lib/i18n";
 
 export type GearChecklistPage = {
   slug: string;
@@ -471,12 +471,47 @@ function createFaqJsonLd(page: GearChecklistPage, language: Language) {
   };
 }
 
+function createBreadcrumbJsonLd(page: GearChecklistPage, language: Language) {
+  const siteUrl = "https://outdoor-gear-calculator.com";
+  const currentGuideName = language === "zh" ? `${localizeValue(page.analysisContext.activity, "zh")}装备指南` : page.h1;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: language === "zh" ? "首页" : "Home",
+        item: `${siteUrl}/?lang=${language}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: language === "zh" ? "装备指南" : "Guides",
+        item: `${siteUrl}/guides?lang=${language}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: currentGuideName,
+        item: `${siteUrl}/${page.slug}?lang=${language}`,
+      },
+    ],
+  };
+}
+
 export function GearChecklistLanding({ page, lang }: { page: GearChecklistPage; lang?: string }) {
   const language = getLanguageFromValue(lang);
   const faqJsonLd = createFaqJsonLd(page, language);
+  const breadcrumbJsonLd = createBreadcrumbJsonLd(page, language);
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c") }}
+      />
       {faqJsonLd ? (
         <script
           type="application/ld+json"

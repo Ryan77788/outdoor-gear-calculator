@@ -63,6 +63,35 @@ function createFaqJsonLd(page: SeoLandingPage, language: Language) {
   };
 }
 
+function createBreadcrumbJsonLd(page: SeoLandingPage, language: Language, currentGuideName: string) {
+  const siteUrl = "https://outdoor-gear-calculator.com";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: language === "zh" ? "首页" : "Home",
+        item: `${siteUrl}/?lang=${language}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: language === "zh" ? "装备指南" : "Guides",
+        item: `${siteUrl}/guides?lang=${language}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: currentGuideName,
+        item: `${siteUrl}/guides/${page.slug}?lang=${language}`,
+      },
+    ],
+  };
+}
+
 export function generateStaticParams() {
   return seoLandingPages.map((page) => ({ slug: page.slug }));
 }
@@ -111,9 +140,14 @@ export default async function DynamicSeoGuidePage({ params, searchParams }: Page
   const plannerHref = `/?activity=${encodeURIComponent(page.activity.page.analysisContext.activity)}&lang=${language}`;
   const allGuidesHref = `/guides?lang=${language}`;
   const faqJsonLd = createFaqJsonLd(page, language);
+  const breadcrumbJsonLd = createBreadcrumbJsonLd(page, language, copy.heroTitle);
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c") }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
