@@ -41,7 +41,7 @@ export async function GET() {
   } catch (error) {
     console.error("Failed to load product overrides:", error);
 
-    return NextResponse.json({ success: false, error: "Failed to load product overrides" }, { status: 500 });
+    return NextResponse.json({ success: true, overrides: [] });
   }
 }
 

@@ -39,7 +39,7 @@ import {
   translations,
   type Language,
 } from "@/lib/i18n";
-import { getGuideImage, getShareCardBackground } from "@/lib/activity-backgrounds";
+import { getShareCardBackground } from "@/lib/activity-backgrounds";
 import { SiteFooter } from "@/app/site-footer";
 
 type IconName = RiskIconName;
@@ -641,10 +641,11 @@ export default function Home() {
 
     async function loadProductOverrides() {
       try {
-        const response = await fetch("/api/admin/product-overrides");
+        const response = await fetch("/api/product-overrides");
 
         if (!response.ok) {
-          throw new Error(`Load product overrides failed with status ${response.status}`);
+          console.error(`Load product overrides failed with status ${response.status}`);
+          return;
         }
 
         const result = (await response.json()) as ProductOverridesResponse;
@@ -653,7 +654,7 @@ export default function Home() {
           setProductOverrides(result.overrides ?? []);
         }
       } catch (error) {
-        reportClientError("Failed to load product overrides:", error);
+        console.error("Failed to load product overrides:", error);
       }
     }
 
@@ -1458,7 +1459,7 @@ export default function Home() {
           </a>
           {[
             { href: localizedSectionHref("gear-planner"), label: siteNavLabels.planner },
-            { href: localizedSectionHref("activity-guides"), label: siteNavLabels.guides },
+            { href: `/guides?lang=${language}`, label: siteNavLabels.guides },
             { href: localizedSectionHref("saved-plans"), label: siteNavLabels.saved },
           ].map((item) => (
             <a
@@ -1718,7 +1719,7 @@ export default function Home() {
                 loading="lazy"
                 quality={68}
                 sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-                src={getGuideImage(guide.href.replace("/", ""))}
+                src={guide.image}
               />
               <div
                 aria-hidden="true"

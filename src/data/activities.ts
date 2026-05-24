@@ -150,6 +150,7 @@ export const activityGuideCards = [
 ].map((activity) => ({
   key: activity.slug,
   href: activity.guideUrl,
+  image: activity.heroImage,
   title: { en: activity.nameEn, zh: activity.nameZh },
   description: { en: activity.descriptionEn, zh: activity.descriptionZh },
 }));

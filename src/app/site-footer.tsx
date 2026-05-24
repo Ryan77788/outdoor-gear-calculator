@@ -8,7 +8,7 @@ type FooterLink = {
 
 const quickLinks: FooterLink[] = [
   { href: "/#gear-planner", label: { en: "Gear Planner", zh: "装备规划" } },
-  { href: "/#activity-guides", label: { en: "Activity Guides", zh: "活动指南" } },
+  { href: "/guides", label: { en: "Activity Guides", zh: "活动指南" } },
   { href: "/#saved-plans", label: { en: "Saved Plans", zh: "已保存方案" } },
 ];
 
