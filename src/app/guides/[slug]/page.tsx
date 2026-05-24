@@ -106,12 +106,20 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
   const copy = localized(page, language);
   const url = `https://outdoor-gear-calculator.com/guides/${page.slug}`;
+  const zhUrl = `${url}?lang=zh`;
   const imageUrl = new URL(page.activity.heroImage, url).toString();
 
   return {
     title: copy.title,
     description: copy.description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      languages: {
+        en: url,
+        zh: zhUrl,
+        "x-default": url,
+      },
+    },
     openGraph: {
       title: copy.title,
       description: copy.description,

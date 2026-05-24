@@ -427,6 +427,7 @@ export const gearChecklistPages = {
 export function createChecklistMetadata(page: GearChecklistPage): Metadata {
   const siteUrl = "https://outdoor-gear-calculator.com";
   const url = `${siteUrl}/${page.slug}`;
+  const zhUrl = `${url}?lang=zh`;
   const image = getGuideImage(page.slug);
   const imageUrl = new URL(image, siteUrl).toString();
 
@@ -436,6 +437,11 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
     keywords: page.keywords,
     alternates: {
       canonical: url,
+      languages: {
+        en: url,
+        zh: zhUrl,
+        "x-default": url,
+      },
     },
     openGraph: {
       title: page.title,

@@ -47,6 +47,11 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: `${siteUrl}/`,
+    languages: {
+      en: `${siteUrl}/`,
+      zh: `${siteUrl}/?lang=zh`,
+      "x-default": `${siteUrl}/`,
+    },
   },
   twitter: {
     card: "summary_large_image",
@@ -54,6 +59,11 @@ export const metadata: Metadata = {
     description: "Plan outdoor gear by activity, weather, people and budget.",
     images: [defaultOgImage],
   },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? {
+        google: process.env.GOOGLE_SITE_VERIFICATION,
+      }
+    : undefined,
 };
 
 export default function RootLayout({

@@ -54,6 +54,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const language = getLanguageFromValue(query?.lang);
   const pageCopy = copy[language];
   const url = "https://outdoor-gear-calculator.com/guides";
+  const zhUrl = `${url}?lang=zh`;
   const imageUrl = "https://outdoor-gear-calculator.com/og-image.jpg";
 
   return {
@@ -61,6 +62,11 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     description: pageCopy.description,
     alternates: {
       canonical: url,
+      languages: {
+        en: url,
+        zh: zhUrl,
+        "x-default": url,
+      },
     },
     openGraph: {
       title: pageCopy.title,
