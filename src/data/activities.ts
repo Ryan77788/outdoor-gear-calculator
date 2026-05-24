@@ -129,6 +129,8 @@ export const gearChecklistPages = Object.fromEntries(
     key,
     {
       ...activity.page,
+      faqEn: activity.faqEn,
+      faqZh: activity.faqZh,
       relatedSlugs: activity.relatedSlugs,
     },
   ]),

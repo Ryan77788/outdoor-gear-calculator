@@ -5,6 +5,7 @@ import type { GearTier } from "@/lib/gear-tier";
 
 import { getGuideImage } from "@/lib/activity-backgrounds";
 import { GearChecklistLandingClient } from "@/app/gear-checklist-landing-client";
+import { getLanguageFromValue, type Language } from "@/lib/i18n";
 
 export type GearChecklistPage = {
   slug: string;
@@ -18,6 +19,8 @@ export type GearChecklistPage = {
   gear: string[];
   risks: string[];
   relatedSlugs?: string[];
+  faqEn?: { question: string; answer: string }[];
+  faqZh?: { question: string; answer: string }[];
   packingStrategy?: string[];
   commonMistakes?: string[];
   budgetTips?: {
@@ -449,8 +452,40 @@ export function createChecklistMetadata(page: GearChecklistPage): Metadata {
   };
 }
 
-export function GearChecklistLanding({ page }: { page: GearChecklistPage }) {
-  return <GearChecklistLandingClient page={page} />;
+function createFaqJsonLd(page: GearChecklistPage, language: Language) {
+  const faqs = language === "zh" ? page.faqZh : page.faqEn;
+
+  if (!faqs?.length) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+}
+
+export function GearChecklistLanding({ page, lang }: { page: GearChecklistPage; lang?: string }) {
+  const language = getLanguageFromValue(lang);
+  const faqJsonLd = createFaqJsonLd(page, language);
+
+  return (
+    <>
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+        />
+      ) : null}
+      <GearChecklistLandingClient page={page} />
+    </>
+  );
 }
 
 

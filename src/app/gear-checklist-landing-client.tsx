@@ -43,6 +43,7 @@ const guideLabels = {
     commonMistakes: "Common Mistakes",
     coreGear: "Core Gear List",
     faq: "FAQ",
+    allGuides: "Back to all guides",
     openPlanner: "Open Gear Planner",
     packingStrategy: "Packing Strategy",
     relatedGuides: "Related Guides",
@@ -61,6 +62,7 @@ const guideLabels = {
     commonMistakes: "常见错误",
     coreGear: "核心装备清单",
     faq: "常见问题",
+    allGuides: "返回全部指南",
     openPlanner: "打开装备规划器",
     packingStrategy: "装备准备策略",
     relatedGuides: "相关指南",
@@ -779,6 +781,7 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
   const relatedGuides = useMemo(() => getRelatedGuides(page), [page]);
   const activitySlug = activitySlugByActivity[page.analysisContext.activity] ?? page.slug;
   const plannerHref = `/?activity=${activitySlug}&lang=${language}`;
+  const allGuidesHref = `/guides?lang=${language}`;
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
@@ -798,6 +801,12 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
         />
 
         <div className="mx-auto flex min-h-[390px] max-w-6xl flex-col justify-end px-6 pb-16 pt-20">
+          <Link
+            className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-4 py-2 text-sm font-black text-white shadow-lg shadow-black/10 backdrop-blur-xl transition hover:bg-white/24"
+            href={allGuidesHref}
+          >
+            {labels.allGuides}
+          </Link>
           <p className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
             {localizedPage.eyebrow}
           </p>
@@ -1013,6 +1022,12 @@ export function GearChecklistLandingClient({ page }: { page: GearChecklistPage }
             href={plannerHref}
           >
             {labels.openPlanner}
+          </Link>
+          <Link
+            className="rounded-xl border border-emerald-200 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+            href={allGuidesHref}
+          >
+            {labels.allGuides}
           </Link>
         </div>
       </section>

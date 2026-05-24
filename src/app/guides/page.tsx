@@ -104,8 +104,9 @@ export default async function GuidesPage({ searchParams }: PageProps) {
       <section className="mx-auto max-w-6xl px-6 pb-16" aria-label={pageCopy.heading}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {activityGuideCards.map((guide) => (
-            <article
+            <Link
               className="group relative isolate flex min-h-72 flex-col justify-between overflow-hidden rounded-lg border border-white/30 bg-slate-950 p-5 text-white shadow-lg shadow-emerald-950/10 ring-1 ring-slate-200/30 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/18"
+              href={`${guide.href}?lang=${language}`}
               key={guide.key}
             >
               <Image
@@ -127,14 +128,13 @@ export default async function GuidesPage({ searchParams }: PageProps) {
               </div>
               <div className="mt-8">
                 <p className="text-sm leading-6 text-white/84 drop-shadow-sm">{guide.description[language]}</p>
-                <Link
+                <span
                   className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-emerald-50 px-4 text-sm font-black text-emerald-950 shadow-sm transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-lime-200/70"
-                  href={`${guide.href}?lang=${language}`}
                 >
                   {pageCopy.viewGuide}
-                </Link>
+                </span>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>

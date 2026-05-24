@@ -6,8 +6,16 @@ import {
 
 const page = gearChecklistPages.desertHiking;
 
+type PageProps = {
+  searchParams?: Promise<{
+    lang?: string;
+  }>;
+};
+
 export const metadata = createChecklistMetadata(page);
 
-export default function DesertHikingPage() {
-  return <GearChecklistLanding page={page} />;
+export default async function DesertHikingPage({ searchParams }: PageProps) {
+  const query = await searchParams;
+
+  return <GearChecklistLanding lang={query?.lang} page={page} />;
 }

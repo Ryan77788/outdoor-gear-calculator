@@ -6,8 +6,16 @@ import {
 
 const page = gearChecklistPages.fishing;
 
+type PageProps = {
+  searchParams?: Promise<{
+    lang?: string;
+  }>;
+};
+
 export const metadata = createChecklistMetadata(page);
 
-export default function FishingGearChecklistPage() {
-  return <GearChecklistLanding page={page} />;
+export default async function FishingGearChecklistPage({ searchParams }: PageProps) {
+  const query = await searchParams;
+
+  return <GearChecklistLanding lang={query?.lang} page={page} />;
 }

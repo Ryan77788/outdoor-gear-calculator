@@ -35,12 +35,31 @@ function localized(page: SeoLandingPage, language: Language) {
             priorities: "推荐重点",
             risks: "风险提示",
             related: "相关指南",
+            allGuides: "返回全部指南",
           }
         : {
             priorities: "Recommended priorities",
             risks: "Risk tips",
             related: "Related guides",
+            allGuides: "Back to all guides",
           },
+  };
+}
+
+function createFaqJsonLd(page: SeoLandingPage, language: Language) {
+  const faqs = language === "zh" ? page.activity.faqZh : page.activity.faqEn;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
   };
 }
 
@@ -90,9 +109,15 @@ export default async function DynamicSeoGuidePage({ params, searchParams }: Page
   const copy = localized(page, language);
   const related = getRelatedActivities(page.activity.slug).slice(0, 4);
   const plannerHref = `/?activity=${encodeURIComponent(page.activity.page.analysisContext.activity)}&lang=${language}`;
+  const allGuidesHref = `/guides?lang=${language}`;
+  const faqJsonLd = createFaqJsonLd(page, language);
 
   return (
     <main className="min-h-screen bg-[#eef3ea] text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+      />
       <section className="relative isolate overflow-hidden">
         <Image
           alt={copy.heroTitle}
@@ -108,6 +133,12 @@ export default async function DynamicSeoGuidePage({ params, searchParams }: Page
           className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(12,48,31,0.58),rgba(12,48,31,0.18)_58%,rgba(238,243,234,0.12)),linear-gradient(to_bottom,rgba(0,0,0,0.52),rgba(0,0,0,0.12)_45%,rgba(238,243,234,0.96))]"
         />
         <div className="mx-auto flex min-h-[390px] max-w-6xl flex-col justify-end px-6 pb-16 pt-20">
+          <Link
+            className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-4 py-2 text-sm font-black text-white shadow-lg shadow-black/10 backdrop-blur-xl transition hover:bg-white/24"
+            href={allGuidesHref}
+          >
+            {copy.labels.allGuides}
+          </Link>
           <p className="mb-5 w-fit rounded-full border border-white/30 bg-white/15 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-xl">
             {language === "zh" ? "动态装备指南" : "Dynamic Gear Guide"}
           </p>
@@ -157,8 +188,8 @@ export default async function DynamicSeoGuidePage({ params, searchParams }: Page
         <div className="rounded-2xl border border-white/70 bg-white/88 p-6 shadow-lg shadow-emerald-950/10 ring-1 ring-emerald-950/5 backdrop-blur-2xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700">{copy.labels.related}</p>
-            <Link className="text-sm font-black text-emerald-800 hover:text-emerald-950" href={plannerHref}>
-              {copy.cta}
+            <Link className="text-sm font-black text-emerald-800 hover:text-emerald-950" href={allGuidesHref}>
+              {copy.labels.allGuides}
             </Link>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
