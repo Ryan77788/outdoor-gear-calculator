@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     images: [{ url: defaultOgImage }],
   },
   alternates: {
-    canonical: siteUrl,
+    canonical: `${siteUrl}/`,
   },
   twitter: {
     card: "summary_large_image",
