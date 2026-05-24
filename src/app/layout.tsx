@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 const siteUrl = "https://outdoor-gear-calculator.com";
 const defaultOgImage = `${siteUrl}/og-image.jpg`;
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
@@ -82,6 +84,19 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c") }}
         />
+        {gaId ? (
+          <>
+            <Script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        ) : null}
         {children}
       </body>
     </html>
