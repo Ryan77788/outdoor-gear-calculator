@@ -29,6 +29,10 @@ export type ProductActivity = Activity | ActivitySlug;
 export type Currency = "CNY";
 export type ProductDifficulty = "easy" | "moderate" | "technical";
 export type AffiliateProvider = "amazon" | "decathlon" | "backcountry" | "evo" | "basspro" | "none";
+export type ProductExpertRecommendation = {
+  zh: string[];
+  en: string[];
+};
 export type GearCategory =
   | "shoes"
   | "shellJacket"
@@ -95,6 +99,7 @@ export type ProductTemplate = {
   searchLink: string;
   sourceUrl: string;
   isAffiliateReady: boolean;
+  isCurated: boolean;
   description: string;
   level: ProductLevel;
   priority: ProductPriority;
@@ -108,6 +113,9 @@ export type ProductTemplate = {
   buyUrl: string;
   reason: string;
   reasonEn?: string;
+  bestFor: ProductExpertRecommendation;
+  strengths: ProductExpertRecommendation;
+  notIdealFor: ProductExpertRecommendation;
 };
 
 export type Product = ProductTemplate & {
@@ -282,6 +290,7 @@ type ProductInput = Omit<
   | "image"
   | "imageStatus"
   | "isAffiliateReady"
+  | "isCurated"
   | "merchant"
   | "productPriority"
   | "rating"
@@ -289,6 +298,9 @@ type ProductInput = Omit<
   | "tags"
   | "category"
   | "categoryEn"
+  | "bestFor"
+  | "strengths"
+  | "notIdealFor"
 > & {
   affiliate?: boolean;
   affiliateLink?: string;
@@ -304,11 +316,15 @@ type ProductInput = Omit<
   image?: string;
   imageStatus?: ImageStatus;
   isAffiliateReady?: boolean;
+  isCurated?: boolean;
   merchant?: string;
   productPriority?: ProductDisplayPriority;
   rating?: 4.2 | 4.5 | 4.8;
   sourceUrl?: string;
   tags?: string[];
+  bestFor?: ProductExpertRecommendation;
+  strengths?: ProductExpertRecommendation;
+  notIdealFor?: ProductExpertRecommendation;
 };
 
 type CommercePlatform = "amazon" | "rei" | "decathlon";
@@ -513,6 +529,34 @@ function getProductDescription(product: ProductInput) {
   return `${product.brand} ${name} is a ${category} selected for real trip planning, balancing durability, fit, and practical field use in ${weatherFit}.`;
 }
 
+function defaultExpertRecommendation(product: ProductInput) {
+  const categoryZh = product.category ?? categoryZhByGearCategory[product.gearCategory];
+  const categoryEn = product.categoryEn ?? categoryEnByGearCategory[product.gearCategory];
+  const levelZh = product.level === "premium" ? "高强度或进阶路线" : product.level === "standard" ? "常规户外计划" : "轻量或入门计划";
+  const levelEn = product.level === "premium" ? "demanding or advanced trips" : product.level === "standard" ? "regular outdoor plans" : "lightweight or beginner plans";
+  const weatherTags = product.weather.filter((weather) => weather !== "通用");
+  const weatherZh = weatherTags.length > 0 ? `${weatherTags.join("、")}条件` : "多变天气";
+  const weatherEn =
+    weatherTags.length > 0
+      ? weatherTags.map((weather) => tagByWeather[weather] ?? weather).join(", ")
+      : "mixed conditions";
+
+  return {
+    bestFor: {
+      zh: [`适合${levelZh}中的${categoryZh}需求。`],
+      en: [`Best for ${categoryEn.toLowerCase()} needs on ${levelEn}.`],
+    },
+    strengths: {
+      zh: [`围绕${weatherZh}、${product.priority === "core" ? "核心安全" : "实用补充"}和真实出行频率筛选。`],
+      en: [`Selected for ${weatherEn}, ${product.priority === "core" ? "core safety" : "practical add-on value"}, and real trip use.`],
+    },
+    notIdealFor: {
+      zh: product.level === "premium" ? ["不适合只想控制预算的低频出行。"] : [],
+      en: product.level === "premium" ? ["Not ideal for infrequent trips where budget control matters most."] : [],
+    },
+  };
+}
+
 function p(product: ProductInput): ProductTemplate {
   const platform = getCommercePlatform(product);
   const merchant = product.merchant ?? getMerchant(platform);
@@ -520,6 +564,7 @@ function p(product: ProductInput): ProductTemplate {
   const fallbackSearchUrl = searchUrl(fallbackPlatform, productSearchQuery(product));
   const sourceUrl = merchant === "REI" ? fallbackSearchUrl : product.sourceUrl ?? fallbackSearchUrl;
   const linkType = product.linkType ?? (product.affiliateLink ? "product" : "search");
+  const expertRecommendation = defaultExpertRecommendation(product);
 
   return {
     ...product,
@@ -536,6 +581,7 @@ function p(product: ProductInput): ProductTemplate {
     image: product.image ?? imageByCategory[product.gearCategory] ?? "/products/placeholder-camping.jpg",
     imageStatus: product.imageStatus ?? (product.image ? "needsReview" : "placeholder"),
     isAffiliateReady: product.isAffiliateReady ?? false,
+    isCurated: product.isCurated ?? false,
     linkType,
     merchant,
     productPriority: getProductDisplayPriority(product),
@@ -544,6 +590,9 @@ function p(product: ProductInput): ProductTemplate {
     searchLink: sourceUrl,
     sourceUrl,
     tags: getProductTags(product),
+    bestFor: product.bestFor ?? expertRecommendation.bestFor,
+    strengths: product.strengths ?? expertRecommendation.strengths,
+    notIdealFor: product.notIdealFor ?? expertRecommendation.notIdealFor,
     buyUrl: sourceUrl,
   };
 }

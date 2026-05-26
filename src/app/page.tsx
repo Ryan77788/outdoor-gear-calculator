@@ -20,7 +20,7 @@ import {
 } from "@/lib/recommendation";
 import { getGearTier, getGearTierMeta, getGearTierStyle, type GearTier } from "@/lib/gear-tier";
 import { buildRecommendationAnalysis } from "@/lib/reasoning";
-import { applyProductOverrides, type ProductOverride } from "@/lib/product-overrides";
+import { applyProductOverrides, buildCustomProductsFromOverrides, type ProductOverride } from "@/lib/product-overrides";
 import {
   formatCurrency as formatLocalizedCurrency,
   formatQuantity,
@@ -43,6 +43,11 @@ import { getShareCardBackground } from "@/lib/activity-backgrounds";
 import { SiteFooter } from "@/app/site-footer";
 
 type IconName = RiskIconName;
+type SafetyPlanningItem = {
+  title: string;
+  text: string;
+  icon: IconName;
+};
 
 type FormState = {
   activity: Activity;
@@ -153,6 +158,19 @@ function SavedPlanCardSkeleton() {
       </div>
     </div>
   );
+}
+
+function localizedRecommendationItems(product: Product, field: "bestFor" | "strengths" | "notIdealFor", language: Language) {
+  const localized = product[field]?.[language] ?? [];
+  const fallback = product[field]?.[language === "zh" ? "en" : "zh"] ?? [];
+
+  return localized.length > 0 ? localized : fallback;
+}
+
+function recommendationLabel(field: "bestFor" | "strengths" | "notIdealFor", language: Language) {
+  if (field === "bestFor") return language === "zh" ? "适合" : "Best for";
+  if (field === "strengths") return language === "zh" ? "优势" : "Strengths";
+  return language === "zh" ? "不适合" : "Not ideal for";
 }
 
 function reportClientError(message: string, error: unknown) {
@@ -460,6 +478,89 @@ function getRecommendationInsight(activity: Activity, tripDays: TripDays, budget
   return `Optimized for a ${tripLabel} ${activityLabel} trip with ${tripFocus} and ${budgetFocus}.`;
 }
 
+function getSafetyPlanningItems(
+  activity: Activity,
+  weather: Weather,
+  tripDays: TripDays,
+  budget: number,
+  language: Language,
+): SafetyPlanningItem[] {
+  const isSingleDay = tripDays === tripDayOptions[0];
+  const isLongTrip = tripDays === tripDayOptions[2];
+  const activityLabel = localizeValue(activity, language);
+  const weatherLabel = localizeValue(weather, language);
+  const tripLabel = localizeValue(tripDays, language);
+
+  if (language === "zh") {
+    const weatherAdvice =
+      weather === "雨天"
+        ? "优先确认防雨外层、干燥收纳和备用袜衣，湿滑路线要降低速度。"
+        : weather === "寒冷"
+          ? "用分层保暖处理早晚温差，电池、饮水和手部保暖要留冗余。"
+          : weather === "炎热"
+            ? "把补水、遮阳和电解质前置，避免把高强度路段安排在正午。"
+            : "晴天也要准备防晒、补水和基础防风层，山地天气可能快速变化。";
+    const tripAdvice = isSingleDay
+      ? `${activityLabel}${tripLabel}建议压缩非必要舒适项，把返程时间和导航备份放在优先级前面。`
+      : isLongTrip
+        ? `${activityLabel}${tripLabel}要按每天补给、睡眠恢复和装备维修来分包，避免单点失效。`
+        : `${activityLabel}${tripLabel}需要兼顾日间移动和夜间恢复，出发前确认营地或住宿规则。`;
+    const energyAdvice =
+      activity === "沙漠徒步" || activity === "攀岩" || activity === "骑行"
+        ? "体力消耗偏高，建议把补水、能量补给和休息点按固定间隔规划。"
+        : activity === "露营" || activity === "海边露营" || activity === "冬季露营" || activity === "自驾游"
+          ? "移动强度较低但搬运和搭建会消耗体力，重物尽量拆分给多人。"
+          : "按前半程保守、后半程留余量来安排节奏，避免回程体力断档。";
+    const budgetAdvice =
+      budget < 1500
+        ? "预算较紧，先保安全、天气防护和核心品类，舒适升级可以延后。"
+        : budget >= 5000
+          ? "预算充足，适合把钱花在鞋包、保暖、防护和睡眠系统等高影响装备上。"
+          : "预算适中，优先选择耐用主装备，再用轻量配件补齐体验。";
+
+    return [
+      { title: "天气建议", text: `${weatherLabel}：${weatherAdvice}`, icon: "weather" },
+      { title: "行程建议", text: tripAdvice, icon: "calendar" },
+      { title: "体力消耗", text: energyAdvice, icon: "activity" },
+      { title: "预算建议", text: budgetAdvice, icon: "budget" },
+    ];
+  }
+
+  const activityName = activityLabel.toLowerCase();
+  const weatherAdvice =
+    weather === "雨天"
+      ? "Prioritize rain layers, dry storage, and spare socks or layers; slow down on slick routes."
+      : weather === "寒冷"
+        ? "Use layered insulation and leave margin for batteries, water, and hand warmth."
+        : weather === "炎热"
+          ? "Move hydration, shade, and electrolytes up front; avoid the hardest section at midday."
+          : "Even in clear weather, carry sun protection, water, and a light wind layer for fast changes.";
+  const tripAdvice = isSingleDay
+    ? `For a ${tripLabel} ${activityName} plan, trim comfort extras and protect return timing plus navigation backup.`
+    : isLongTrip
+      ? `For a ${tripLabel} ${activityName} plan, organize by daily resupply, sleep recovery, and repair redundancy.`
+      : `For a ${tripLabel} ${activityName} plan, balance daytime movement with overnight recovery and confirm camp or lodging rules.`;
+  const energyAdvice =
+    activity === "沙漠徒步" || activity === "攀岩" || activity === "骑行"
+      ? "Energy demand is high, so schedule water, calories, and rest stops at fixed intervals."
+      : activity === "露营" || activity === "海边露营" || activity === "冬季露营" || activity === "自驾游"
+        ? "Travel intensity is lower, but hauling and setup still add fatigue; split heavy items across the group."
+        : "Use a conservative first half and keep margin for the return leg to avoid late-trip fatigue.";
+  const budgetAdvice =
+    budget < 1500
+      ? "Budget is tight: protect safety, weather coverage, and core categories before comfort upgrades."
+      : budget >= 5000
+        ? "Budget is flexible: spend on high-impact gear such as footwear, packs, insulation, protection, and sleep systems."
+        : "Budget is balanced: choose durable core gear first, then round out comfort with lighter accessories.";
+
+  return [
+    { title: "Weather advice", text: `${weatherLabel}: ${weatherAdvice}`, icon: "weather" },
+    { title: "Trip planning", text: tripAdvice, icon: "calendar" },
+    { title: "Energy demand", text: energyAdvice, icon: "activity" },
+    { title: "Budget advice", text: budgetAdvice, icon: "budget" },
+  ];
+}
+
 function getBudgetFitScore(totalPrice: number, budget: number): BudgetFitScore {
   if (budget <= 0) return "over";
 
@@ -695,8 +796,16 @@ export default function Home() {
     [form.activity, form.tripDays, form.weather, form.peopleCount, form.budget],
   );
   const productPlan = useMemo(
-    () => getProductPlan(form.activity, form.budget, form.peopleCount, form.tripDays, form.weather),
-    [form.activity, form.budget, form.peopleCount, form.tripDays, form.weather],
+    () =>
+      getProductPlan(
+        form.activity,
+        form.budget,
+        form.peopleCount,
+        form.tripDays,
+        form.weather,
+        buildCustomProductsFromOverrides(productOverrides),
+      ),
+    [form.activity, form.budget, form.peopleCount, form.tripDays, form.weather, productOverrides],
   );
   const recommendedProducts = useMemo(
     () => applyProductOverrides(productPlan.selectedProducts, productOverrides),
@@ -721,10 +830,13 @@ export default function Home() {
     [form.activity, form.weather, form.tripDays, language],
   );
   const budgetFitBadge = getBudgetFitBadge(getBudgetFitScore(productPlan.totalPrice, form.budget), language);
-  const hasMoreGear = gearList.length > 6;
   const risks = useMemo(
     () => getRiskBlocks(form.activity, form.weather, form.tripDays),
     [form.activity, form.weather, form.tripDays],
+  );
+  const safetyPlanningItems = useMemo(
+    () => getSafetyPlanningItems(form.activity, form.weather, form.tripDays, form.budget, language),
+    [form.activity, form.weather, form.tripDays, form.budget, language],
   );
   const insightReport = useMemo(
     () => getOutdoorInsights(form.activity, form.weather, form.tripDays, form.peopleCount, form.budget),
@@ -1864,30 +1976,92 @@ export default function Home() {
           </div>
         </section>
 
-        <section
-          className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-3"
-          data-share-capture="result"
-        >
-          <div className="rounded-2xl border border-emerald-100 bg-white/88 px-4 py-3 shadow-sm ring-1 ring-white/70 backdrop-blur lg:col-span-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-                {language === "zh" ? "本次装备重点" : "Top Priorities"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {gearPrioritySummary.map((priority) => (
-                  <span
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700"
-                    key={priority}
-                  >
-                    {priority}
-                  </span>
-                ))}
+        <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-2" data-share-capture="result">
+          <div className="rounded-2xl border border-emerald-100 bg-white/92 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur sm:p-5 lg:col-span-2">
+            <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_auto] xl:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                  {language === "zh" ? "方案摘要" : "Plan Summary"}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {gearPrioritySummary.map((priority) => (
+                    <span
+                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700"
+                      key={priority}
+                    >
+                      {priority}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {displayValue(form.activity)} · {displayValue(form.weather)} · {displayValue(form.tripDays)} ·{" "}
+                  {formatPeople(form.peopleCount, language)}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-xl bg-slate-100 px-2 py-3">
+                  <p className="font-semibold text-slate-500">{t.totalBudget}</p>
+                  <p className="mt-1 font-black text-slate-950">{formatMoney(form.budget)}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 px-2 py-3">
+                  <p className="font-semibold text-emerald-700">{t.recommendedTotal}</p>
+                  <p className="mt-1 font-black text-emerald-800">{formatMoney(productPlan.totalPrice)}</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 px-2 py-3">
+                  <p className="font-semibold text-amber-700">
+                    {productPlan.remainingBudget < 0 ? t.slightlyOver : t.remainingBudget}
+                  </p>
+                  <p className="mt-1 font-black text-amber-800">
+                    {formatMoney(Math.abs(productPlan.remainingBudget))}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2 xl:min-w-72 xl:grid-cols-1" data-hide-in-share>
+                <button
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={savePlanStatus === "saving"}
+                  onClick={() => void handleSavePlan()}
+                  type="button"
+                >
+                  {savePlanStatus === "saved" ? t.saved : t.savePlan}
+                </button>
+                <button
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-black text-lime-800 transition hover:bg-lime-100 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isGeneratingShareImage}
+                  onClick={() => void handleGenerateShareImage()}
+                  type="button"
+                >
+                  {isGeneratingShareImage && (
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-lime-800/25 border-t-lime-800" />
+                  )}
+                  {isGeneratingShareImage ? t.generating : t.generateShareImage}
+                </button>
+                {lastSavedPlanId && (
+                  <>
+                    <button
+                      className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 transition hover:bg-slate-50"
+                      onClick={() => handleViewSavedPlan(lastSavedPlanId)}
+                      type="button"
+                    >
+                      {t.viewSavedPlan}
+                    </button>
+                    <button
+                      className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100"
+                      onClick={() => void handleCopyShareLink(lastSavedPlanId)}
+                      type="button"
+                    >
+                      {copiedPlanId === lastSavedPlanId ? t.copied : t.copyShareLink}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           <article
-            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
+            className="order-3 flex min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
             data-share-card
           >
             <div className="mb-4 flex items-center gap-3">
@@ -1902,13 +2076,8 @@ export default function Home() {
                 <p className="mt-1 text-xs text-slate-500">{t.requiredGearNote}</p>
               </div>
             </div>
-            {hasMoreGear && (
-              <p className="mb-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                {t.scrollMore}
-              </p>
-            )}
             <div className="min-h-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 p-2 pb-4">
-              <ul className="max-h-[430px] space-y-1 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
+              <ul className="space-y-1" data-share-scroll>
                 {gearList.map((item, index) => (
                   <li
                     className="flex min-h-[72px] items-center gap-3 rounded-lg bg-white/70 px-3 py-2"
@@ -1933,7 +2102,7 @@ export default function Home() {
           </article>
 
           <article
-            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-5 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur"
+            className="order-2 flex min-h-0 flex-col rounded-2xl border border-white bg-white/92 p-4 shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/70 backdrop-blur sm:p-5 lg:col-span-2"
             data-share-card
           >
             <div className="mb-4 flex items-center gap-3">
@@ -1976,80 +2145,21 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mb-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-xl bg-slate-100 px-2 py-3">
-                <p className="font-semibold text-slate-500">{t.totalBudget}</p>
-                <p className="mt-1 font-black text-slate-950">{formatMoney(form.budget)}</p>
-              </div>
-              <div className="rounded-xl bg-emerald-50 px-2 py-3">
-                <p className="font-semibold text-emerald-700">{t.recommendedTotal}</p>
-                <p className="mt-1 font-black text-emerald-800">{formatMoney(productPlan.totalPrice)}</p>
-              </div>
-              <div className="rounded-xl bg-amber-50 px-2 py-3">
-                <p className="font-semibold text-amber-700">
-                  {productPlan.remainingBudget < 0 ? t.slightlyOver : t.remainingBudget}
-                </p>
-                <p className="mt-1 font-black text-amber-800">
-                  {formatMoney(Math.abs(productPlan.remainingBudget))}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-4 grid gap-2 sm:grid-cols-2" data-hide-in-share>
-              <button
-                className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={savePlanStatus === "saving"}
-                onClick={() => void handleSavePlan()}
-                type="button"
-              >
-                {savePlanStatus === "saved" ? t.saved : t.savePlan}
-              </button>
-              <button
-                className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100 disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isGeneratingShareImage}
-                onClick={() => void handleGenerateShareImage()}
-                type="button"
-              >
-                {isGeneratingShareImage && (
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-lime-800/25 border-t-lime-800" />
-                )}
-                {isGeneratingShareImage ? t.generating : t.generateShareImage}
-              </button>
-              {lastSavedPlanId && (
-                <>
-                  <button
-                    className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 transition hover:bg-slate-50"
-                    onClick={() => handleViewSavedPlan(lastSavedPlanId)}
-                    type="button"
-                  >
-                    {t.viewSavedPlan}
-                  </button>
-                  <button
-                    className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-lime-200 bg-lime-50 text-sm font-bold text-lime-800 transition hover:bg-lime-100"
-                    onClick={() => void handleCopyShareLink(lastSavedPlanId)}
-                    type="button"
-                  >
-                    {copiedPlanId === lastSavedPlanId ? t.copied : t.copyShareLink}
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-1" data-share-scroll>
+            <div className="grid gap-4 md:grid-cols-2" data-share-scroll>
               {filteredRecommendedProducts.map((product, index) => (
                 <div
-                  className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
+                  className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md sm:p-5"
                   key={`${product.name}-${product.quantity}-${index}`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                    <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-200 sm:h-28 sm:w-28 xl:h-32 xl:w-32">
                       <Image
                         alt={localizeProductName(product, language)}
                         className="h-full w-full object-cover"
                         loading="lazy"
-                        sizes="80px"
-                        width={80}
-                        height={80}
+                        sizes="(min-width: 1280px) 128px, (min-width: 640px) 112px, 100vw"
+                        width={128}
+                        height={128}
                         src={product.image}
                       />
                       {product.imageStatus !== "matched" && (
@@ -2061,13 +2171,18 @@ export default function Home() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-3 text-base font-black leading-6 text-slate-950 break-words [overflow-wrap:anywhere]">
+                          <p className="line-clamp-2 text-lg font-black leading-6 text-slate-950 break-words [overflow-wrap:anywhere]">
                             {localizeProductName(product, language)}
                           </p>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                               {localizeProductCategory(product, language)}
                             </p>
+                            {product.isCurated && (
+                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-800 ring-1 ring-emerald-100">
+                                {language === "zh" ? "精选装备" : "Curated Gear"}
+                              </span>
+                            )}
                             {product.productPriority === "featured" && (
                               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800 ring-1 ring-amber-100">
                                 精选推荐
@@ -2107,9 +2222,23 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-500">
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
                     {localizeProductReason(product, language)}
                   </p>
+                  <div className="mt-3 space-y-2">
+                    {(["bestFor", "strengths", "notIdealFor"] as const).map((field) => {
+                      const items = localizedRecommendationItems(product, field, language);
+
+                      if (items.length === 0) return null;
+
+                      return (
+                        <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 ring-1 ring-slate-200/70" key={field}>
+                          <p className="font-black text-slate-700">{recommendationLabel(field, language)}：</p>
+                          <p className="mt-1">{items.join(language === "zh" ? "；" : "; ")}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                   <p className="mt-2 text-xs leading-5 text-slate-400">
                     {language === "zh"
                       ? `来自 ${product.merchant || "Amazon"}`
@@ -2137,7 +2266,7 @@ export default function Home() {
                   </p>
 
                   <button
-                    className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100"
+                    className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-700 text-sm font-black text-white shadow-sm shadow-emerald-950/10 transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
                     onClick={() => void handleProductClick(product)}
                     type="button"
                   >
@@ -2149,7 +2278,7 @@ export default function Home() {
           </article>
 
           <article
-            className="flex h-[620px] min-h-0 flex-col rounded-2xl border border-amber-200/80 bg-amber-50/92 p-5 shadow-lg shadow-amber-950/5 ring-1 ring-white/70 backdrop-blur"
+            className="order-4 flex min-h-0 flex-col rounded-2xl border border-amber-200/80 bg-amber-50/92 p-5 shadow-lg shadow-amber-950/5 ring-1 ring-white/70 backdrop-blur"
             data-share-card
           >
             <div className="mb-4 flex items-center gap-3">
@@ -2157,27 +2286,43 @@ export default function Home() {
                 <Icon name="alert" />
               </span>
               <div>
-                <h2 className="text-xl font-black text-amber-950">{t.riskTips}</h2>
+                <h2 className="text-xl font-black text-amber-950">
+                  {language === "zh" ? "安全与规划" : "Safety & Planning"}
+                </h2>
                 <p className="text-sm text-amber-700">
                   {displayValue(form.activity)} · {displayValue(form.weather)} · {displayValue(form.tripDays)}
                 </p>
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1" data-share-scroll>
-              {risks.map((risk, index) => (
-                <div
-                  className="rounded-xl border border-amber-200/70 bg-white/78 p-4 shadow-sm"
-                  key={`${risk.title}-${index}`}
-                >
+            <div className="space-y-4" data-share-scroll>
+              <section className="rounded-xl border border-amber-200/70 bg-white/78 p-4 shadow-sm">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.14em] text-amber-700">{t.riskTips}</p>
+                <div className="space-y-3">
+                  {risks.map((risk, index) => (
+                    <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3" key={`${risk.title}-${index}`}>
+                      <div className="mb-2 flex items-center gap-2 font-bold text-amber-950">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+                          <Icon className="h-4 w-4" name={risk.icon} />
+                        </span>
+                        {localizeRiskTitle(risk, language)}
+                      </div>
+                      <p className="text-sm leading-6 text-amber-900/80">{localizeRiskText(risk, language)}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {safetyPlanningItems.map((item) => (
+                <section className="rounded-xl border border-amber-200/70 bg-white/78 p-4 shadow-sm" key={item.title}>
                   <div className="mb-2 flex items-center gap-2 font-bold text-amber-950">
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
-                      <Icon className="h-4 w-4" name={risk.icon} />
+                      <Icon className="h-4 w-4" name={item.icon} />
                     </span>
-                    {localizeRiskTitle(risk, language)}
+                    {item.title}
                   </div>
-                  <p className="text-sm leading-6 text-amber-900/80">{localizeRiskText(risk, language)}</p>
-                </div>
+                  <p className="text-sm leading-6 text-amber-900/80">{item.text}</p>
+                </section>
               ))}
             </div>
           </article>

@@ -666,6 +666,10 @@ function productDurationSortPenalty(product: ProductTemplate, tripDays: TripDays
   return 0;
 }
 
+function productCurationSortBonus(product: ProductTemplate) {
+  return (product.isCurated ? -30000 : 0) + (product.reviewStatus === "affiliate-ready" ? -12000 : 0);
+}
+
 function productSortValue(product: ProductTemplate, activity: Activity, weather: Weather, gearTier: GearTier = "mid", tripDays?: TripDays) {
   const coreIndex = getCoreGearCategoriesForDuration(activity, tripDays ?? "2-3天").indexOf(product.gearCategory);
   const coreRank = coreIndex === -1 ? 50 : coreIndex;
@@ -673,6 +677,7 @@ function productSortValue(product: ProductTemplate, activity: Activity, weather:
 
   return (
     productDurationSortPenalty(product, tripDays ?? "2-3天") +
+    productCurationSortBonus(product) +
     productDisplayPriorityRank[product.productPriority] * 100000 +
     coreRank * 1000 +
     productWeatherRank(product, weather) * 100 +
@@ -697,6 +702,9 @@ function chooseBaseProduct(
   return [...items].sort((a, b) => {
     const weatherDiff = productWeatherRank(a, weather) - productWeatherRank(b, weather);
     if (weatherDiff !== 0) return weatherDiff;
+
+    const curationDiff = productCurationSortBonus(a) - productCurationSortBonus(b);
+    if (curationDiff !== 0) return curationDiff;
 
     const tierDiff = getProductTierAffinity(a.brand, a.level, gearTier) - getProductTierAffinity(b.brand, b.level, gearTier);
     if (tierDiff !== 0) return tierDiff;
@@ -991,11 +999,18 @@ export function selectProductsByPriority(
   };
 }
 
-export function getProductPlan(activity: Activity, budget: number, peopleCount: number, days: TripDays, weather: Weather) {
+export function getProductPlan(
+  activity: Activity,
+  budget: number,
+  peopleCount: number,
+  days: TripDays,
+  weather: Weather,
+  extraProducts: ProductTemplate[] = [],
+) {
   const budgetLevel = getBudgetLevel(budget, peopleCount);
   const gearTier = getGearTier(budget);
   const maxAllowed = Math.floor(Math.max(0, budget) * 1.1);
-  const pool = productCatalog[activity]
+  const pool = [...productCatalog[activity], ...extraProducts]
     .filter((product) => product.activity.includes(activity))
     .filter((product) => isProductAllowedForDuration(product, days, weather));
   const grouped = groupByGearCategory(pool);
