@@ -6,9 +6,10 @@ import { applyProductOverrides, type ProductOverride, type ProductOverrideInput 
 
 export type AdminProduct = ProductTemplate & {
   activityLabel: string;
+  reviewNote?: string;
 };
 
-type ProductFilter = "all" | ProductReviewStatus;
+type ProductFilter = "all" | ProductReviewStatus | "missing-image" | "missing-affiliateLink";
 type SortOption = "default" | "price-desc" | "price-asc" | "reviewStatus" | "merchant";
 
 type ProductsAdminTableProps = {
@@ -35,6 +36,8 @@ const filterOptions: Array<{ label: string; value: ProductFilter }> = [
   { label: "待人工确认", value: "search-only" },
   { label: "已确认商品", value: "reviewed" },
   { label: "联盟商品", value: "affiliate-ready" },
+  { label: "缺少图片", value: "missing-image" },
+  { label: "缺少 affiliateLink", value: "missing-affiliateLink" },
 ];
 
 const sortOptions: Array<{ label: string; value: SortOption }> = [
@@ -59,6 +62,7 @@ function toDraft(product: AdminProduct): ProductOverrideInput {
     affiliateLink: product.affiliateLink ?? "",
     linkType: product.linkType,
     reviewStatus: product.reviewStatus,
+    reviewNote: product.reviewNote ?? "",
     image: product.image,
   };
 }
@@ -87,13 +91,20 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
       searchOnly: displayProducts.filter((product) => product.reviewStatus === "search-only").length,
       reviewed: displayProducts.filter((product) => product.reviewStatus === "reviewed").length,
       affiliateReady: displayProducts.filter((product) => product.reviewStatus === "affiliate-ready").length,
+      missingImage: displayProducts.filter((product) => product.imageStatus !== "matched" || !product.image.trim()).length,
+      missingAffiliateLink: displayProducts.filter((product) => !product.affiliateLink?.trim()).length,
     }),
     [displayProducts],
   );
   const visibleProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = displayProducts
-      .filter((product) => statusFilter === "all" || product.reviewStatus === statusFilter)
+      .filter((product) => {
+        if (statusFilter === "all") return true;
+        if (statusFilter === "missing-image") return product.imageStatus !== "matched" || !product.image.trim();
+        if (statusFilter === "missing-affiliateLink") return !product.affiliateLink?.trim();
+        return product.reviewStatus === statusFilter;
+      })
       .filter((product) => {
         if (!normalizedQuery) return true;
 
@@ -120,6 +131,19 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
   }, [displayProducts, products, query, sortBy, statusFilter]);
   const selectedCount = selectedIds.size;
   const allVisibleSelected = visibleProducts.length > 0 && visibleProducts.every((product) => selectedIds.has(product.id));
+
+  function goToNextSearchOnly() {
+    const nextProduct = displayProducts.find((product) => product.reviewStatus === "search-only");
+
+    if (!nextProduct) return;
+
+    setQuery("");
+    setStatusFilter("all");
+    setEditingId(null);
+    window.setTimeout(() => {
+      document.getElementById(`product-row-${nextProduct.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  }
 
   function startEdit(product: AdminProduct) {
     setEditingId((current) => (current === product.id ? null : product.id));
@@ -260,6 +284,22 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={stats.searchOnly === 0}
+            onClick={goToNextSearchOnly}
+            type="button"
+          >
+            下一条待审核
+          </button>
+          <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+            缺少图片 {stats.missingImage}
+          </span>
+          <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+            缺少 affiliateLink {stats.missingAffiliateLink}
+          </span>
+        </div>
         <div className="grid gap-3 lg:grid-cols-[1fr_13rem_13rem]">
           <label className="text-xs font-bold text-slate-600">
             搜索商品名、品牌、活动
@@ -331,7 +371,7 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1420px] text-left text-sm">
+          <table className="w-full min-w-[1680px] text-left text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-3">
@@ -347,8 +387,10 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
                 <th className="px-4 py-3">活动</th>
                 <th className="px-4 py-3">商家</th>
                 <th className="px-4 py-3">图片</th>
+                <th className="px-4 py-3">affiliateLink</th>
                 <th className="px-4 py-3">linkType</th>
                 <th className="px-4 py-3">reviewStatus</th>
+                <th className="px-4 py-3">reviewNote</th>
                 <th className="px-4 py-3 text-right">price</th>
                 <th className="px-4 py-3">buyUrl</th>
                 <th className="px-4 py-3">操作</th>
@@ -361,7 +403,7 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
 
                 return (
                   <Fragment key={`${product.activityLabel}-${product.id}`}>
-                    <tr className="align-top hover:bg-slate-50/70">
+                    <tr className="align-top hover:bg-slate-50/70" id={`product-row-${product.id}`}>
                       <td className="px-4 py-3">
                         <input
                           aria-label={`Select ${product.name}`}
@@ -391,6 +433,17 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
                         </div>
                       </td>
                       <td className="px-4 py-3">
+                        {product.affiliateLink?.trim() ? (
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800">
+                            有
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700">
+                            缺失
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">
                           {product.linkType}
                         </span>
@@ -399,6 +452,9 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
                         <span className={`rounded-full px-2.5 py-1 text-xs font-black ${statusClass(product.reviewStatus)}`}>
                           {statusLabels[product.reviewStatus]}
                         </span>
+                      </td>
+                      <td className="max-w-56 px-4 py-3 text-xs leading-5 text-slate-600">
+                        {product.reviewNote?.trim() || <span className="text-slate-400">-</span>}
                       </td>
                       <td className="px-4 py-3 text-right font-black text-slate-950">{formatPrice(product.price)}</td>
                       <td className="max-w-80 px-4 py-3">
@@ -423,7 +479,7 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
                     </tr>
                     {isEditing && (
                       <tr className="bg-emerald-50/40">
-                        <td className="px-4 py-4" colSpan={11}>
+                        <td className="px-4 py-4" colSpan={13}>
                           <div className="grid gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5">
                             <label className="text-xs font-bold text-slate-600">
                               buyUrl
@@ -476,6 +532,14 @@ export function ProductsAdminTable({ products, overrides: initialOverrides, init
                                   </option>
                                 ))}
                               </select>
+                            </label>
+                            <label className="text-xs font-bold text-slate-600 xl:col-span-5">
+                              reviewNote
+                              <textarea
+                                className="mt-1 min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-900"
+                                onChange={(event) => updateDraft(product.id, "reviewNote", event.target.value)}
+                                value={draft.reviewNote ?? ""}
+                              />
                             </label>
                             <div className="flex items-end gap-2 xl:col-span-5">
                               <button

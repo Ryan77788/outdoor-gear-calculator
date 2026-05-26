@@ -3,7 +3,7 @@ import clientPromise from "@/lib/mongodb";
 import { applyProductOverrides, type ProductOverride } from "@/lib/product-overrides";
 import { ProductsAdminTable, type AdminProduct } from "@/app/admin/products/ProductsAdminTable";
 
-type ProductFilter = "all" | ProductReviewStatus;
+type ProductFilter = "all" | ProductReviewStatus | "missing-image" | "missing-affiliateLink";
 
 type ProductsPageProps = {
   searchParams: Promise<{
@@ -16,12 +16,20 @@ const filterOptions: Array<{ label: string; value: ProductFilter }> = [
   { label: "待人工确认", value: "search-only" },
   { label: "已确认商品", value: "reviewed" },
   { label: "联盟商品", value: "affiliate-ready" },
+  { label: "缺少图片", value: "missing-image" },
+  { label: "缺少 affiliateLink", value: "missing-affiliateLink" },
 ];
 const linkTypes: ProductLinkType[] = ["product", "search"];
 const reviewStatuses: ProductReviewStatus[] = ["search-only", "reviewed", "affiliate-ready"];
 
 function normalizeFilter(value: string | undefined): ProductFilter {
-  if (value === "search-only" || value === "reviewed" || value === "affiliate-ready") {
+  if (
+    value === "search-only" ||
+    value === "reviewed" ||
+    value === "affiliate-ready" ||
+    value === "missing-image" ||
+    value === "missing-affiliateLink"
+  ) {
     return value;
   }
 
@@ -40,6 +48,7 @@ async function getProductOverrides(): Promise<ProductOverride[]> {
       ...(typeof override.affiliateLink === "string" ? { affiliateLink: override.affiliateLink } : {}),
       ...(linkTypes.includes(override.linkType) ? { linkType: override.linkType } : {}),
       ...(reviewStatuses.includes(override.reviewStatus) ? { reviewStatus: override.reviewStatus } : {}),
+      ...(typeof override.reviewNote === "string" ? { reviewNote: override.reviewNote } : {}),
       ...(typeof override.image === "string" ? { image: override.image } : {}),
       updatedAt: override.updatedAt?.toISOString?.() ?? override.updatedAt,
     }));

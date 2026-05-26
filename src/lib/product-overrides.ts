@@ -5,6 +5,7 @@ export type ProductOverrideFields = {
   affiliateLink?: string;
   linkType?: ProductLinkType;
   reviewStatus?: ProductReviewStatus;
+  reviewNote?: string;
   image?: string;
 };
 
@@ -24,6 +25,7 @@ export function sanitizeProductOverride(input: ProductOverrideInput): ProductOve
     affiliateLink: input.affiliateLink?.trim(),
     linkType: input.linkType,
     reviewStatus: input.reviewStatus,
+    reviewNote: input.reviewNote?.trim(),
     image: input.image?.trim(),
   };
 }
@@ -62,6 +64,7 @@ export function applyProductOverride<T extends ProductTemplate | Product>(produc
     ...(override.affiliateLink !== undefined ? { affiliateLink: override.affiliateLink } : {}),
     ...(override.linkType !== undefined ? { linkType: override.linkType } : {}),
     ...(override.reviewStatus !== undefined ? { reviewStatus: override.reviewStatus } : {}),
+    ...(override.reviewNote !== undefined ? { reviewNote: override.reviewNote } : {}),
     ...(override.image !== undefined ? { image: override.image } : {}),
   } as T & { productUrl?: string };
 

@@ -12,7 +12,8 @@ function isValidOverride(body: ProductOverrideInput) {
     typeof body.id === "string" &&
     body.id.trim().length > 0 &&
     (body.linkType === undefined || linkTypes.includes(body.linkType)) &&
-    (body.reviewStatus === undefined || reviewStatuses.includes(body.reviewStatus))
+    (body.reviewStatus === undefined || reviewStatuses.includes(body.reviewStatus)) &&
+    (body.reviewNote === undefined || typeof body.reviewNote === "string")
   );
 }
 
@@ -34,6 +35,7 @@ export async function GET() {
         ...(typeof override.affiliateLink === "string" ? { affiliateLink: override.affiliateLink } : {}),
         ...(typeof override.linkType === "string" ? { linkType: override.linkType } : {}),
         ...(typeof override.reviewStatus === "string" ? { reviewStatus: override.reviewStatus } : {}),
+        ...(typeof override.reviewNote === "string" ? { reviewNote: override.reviewNote } : {}),
         ...(typeof override.image === "string" ? { image: override.image } : {}),
         updatedAt: override.updatedAt?.toISOString?.() ?? override.updatedAt,
       })),
